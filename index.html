@@ -795,20 +795,20 @@ const PLAN = {
       { type:'exercise', exercise_key:'db_chest_press', sets:3, targetReps:8, anchor:true },
       { type:'exercise', exercise_key:'lat_pulldown', sets:3, targetReps:8, anchor:true },
       { type:'exercise', exercise_key:'db_shoulder_press', sets:3, targetReps:10, anchor:true },
+      { type:'exercise', exercise_key:'plank', sets:3, targetSeconds:30, anchor:true },
       { type:'exercise', exercise_key:'machine_row', sets:3, targetReps:10, week:'A' },
       { type:'exercise', exercise_key:'one_hand_row', sets:3, targetReps:10, week:'B' },
       { type:'exercise', exercise_key:'lateral_raise', sets:3, targetReps:15 },
       { type:'exercise', exercise_key:'triceps_pushdown', sets:3, targetReps:12 },
-      { type:'exercise', exercise_key:'plank', sets:3, targetSeconds:30, anchor:true },
       { type:'cardio_warmup', minutes:10 }
     ]},
     lower: { name:'Lower Strength', estMin:70, blocks:[
       { type:'stretching' },
-      { type:'exercise', exercise_key:'goblet_squat', sets:3, targetReps:10, week:'A' },
-      { type:'exercise', exercise_key:'walking_lunges', sets:3, targetReps:10, week:'B' },
       { type:'exercise', exercise_key:'leg_press', sets:3, targetReps:10, anchor:true },
       { type:'exercise', exercise_key:'hip_thrust', sets:3, targetReps:12, anchor:true },
       { type:'exercise', exercise_key:'back_extension', sets:3, targetReps:12, anchor:true },
+      { type:'exercise', exercise_key:'goblet_squat', sets:3, targetReps:10, week:'A' },
+      { type:'exercise', exercise_key:'walking_lunges', sets:3, targetReps:10, week:'B' },
       { type:'exercise', exercise_key:'ham_curls', sets:3, targetReps:12, week:'A' },
       { type:'exercise', exercise_key:'leg_extensions', sets:3, targetReps:12, week:'B' },
       { type:'exercise', exercise_key:'calf_raise', sets:3, targetReps:15 },
@@ -816,10 +816,10 @@ const PLAN = {
     ]},
     push: { name:'Push + Finisher', estMin:75, blocks:[
       { type:'stretching' },
-      { type:'exercise', exercise_key:'incline_db_press', sets:3, targetReps:12, week:'A' },
-      { type:'exercise', exercise_key:'db_chest_flyes', sets:3, targetReps:12, week:'B' },
       { type:'exercise', exercise_key:'db_chest_press', sets:3, targetReps:12, anchor:true },
       { type:'exercise', exercise_key:'db_shoulder_press', sets:3, targetReps:12, anchor:true },
+      { type:'exercise', exercise_key:'incline_db_press', sets:3, targetReps:12, week:'A' },
+      { type:'exercise', exercise_key:'db_chest_flyes', sets:3, targetReps:12, week:'B' },
       { type:'exercise', exercise_key:'lateral_raise', sets:3, targetReps:15, week:'A' },
       { type:'exercise', exercise_key:'shrugs', sets:3, targetReps:15, week:'B' },
       { type:'finisher_cardio', minutes:25, week:'A' },
@@ -851,12 +851,12 @@ const PLAN = {
     legs: { name:'Legs + Glutes', estMin:75, blocks:[
       { type:'stretching' },
       { type:'exercise', exercise_key:'hip_thrust', sets:3, targetReps:15, anchor:true },
+      { type:'exercise', exercise_key:'leg_press', sets:3, targetReps:15, anchor:true },
+      { type:'exercise', exercise_key:'calf_raise', sets:3, targetReps:15, anchor:true },
       { type:'exercise', exercise_key:'sumo_squat', sets:3, targetReps:12, week:'A' },
       { type:'exercise', exercise_key:'goblet_squat', sets:3, targetReps:12, week:'B' },
-      { type:'exercise', exercise_key:'leg_press', sets:3, targetReps:15, anchor:true },
       { type:'exercise', exercise_key:'leg_extensions', sets:3, targetReps:15 },
       { type:'exercise', exercise_key:'ham_curls', sets:3, targetReps:15 },
-      { type:'exercise', exercise_key:'calf_raise', sets:3, targetReps:15, anchor:true },
       { type:'cardio_warmup', minutes:10 }
     ]}
   },
@@ -883,7 +883,8 @@ const LS = {
 const load = (k, def) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch { return def; } };
 const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
 const uuid = () => 'x' + Math.random().toString(36).slice(2,11) + Date.now().toString(36);
-const todayStr = () => new Date().toISOString().slice(0,10);
+const localDateStr = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const todayStr = () => localDateStr(new Date());
 
 /* ========================================================================== */
 /*  APP                                                                      */
@@ -1030,7 +1031,7 @@ createApp({
       const start = new Date(now); start.setDate(now.getDate() - dayCount + 1);
       for (let i = 0; i < dayCount; i++) {
         const d = new Date(start); d.setDate(start.getDate() + i);
-        const ds = d.toISOString().slice(0,10);
+        const ds = localDateStr(d);
         const c = sessionsByDay[ds] || 0;
         cells.push({ date: ds, level: c >= 2 ? 3 : c === 1 ? 2 : 0 });
       }

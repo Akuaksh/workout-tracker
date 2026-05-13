@@ -6,140 +6,134 @@ Single-user, mobile-first, no backend, no auth required.
 
 ## Tech Stack
 - **Frontend**: Vue 3 via CDN (no build step, no npm)
-- **Storage**: localStorage (5 keys — see schema below)
+- **Storage**: localStorage (4 keys)
 - **Charts**: Chart.js via CDN
 - **Design**: Apple Health-inspired dark theme, pure CSS, single `index.html`
 - **Deployment**: Vercel (static), GitHub repo: akuaksh/workout-tracker
 - **Branch**: `claude/workout-app-setup-1VSZK`
+- **Live**: https://workout-tracker-cyan-six.vercel.app/
 
 ## File Structure
 ```
-/index.html     — entire app (CSS + Vue HTML templates + JS, single file)
+/index.html     — entire app (CSS + Vue HTML templates + JS, single file ~1530 lines)
 /CLAUDE.md      — this file
 ```
 
-## Design System (Apple Health-inspired)
-| Token | Value | Usage |
-|---|---|---|
-| `--bg` | `#000000` | Page background |
-| `--card` | `#1C1C1E` | Card background |
-| `--card2` | `#2C2C2E` | Input background, secondary card |
-| `--text` | `#FFFFFF` | Primary text |
-| `--text2` | `#8E8E93` | Muted/secondary text |
-| `--orange` | `#FF9500` | Primary CTA, streak, accent |
-| `--blue` | `#0A84FF` | Links, back button, secondary actions |
-| `--green` | `#30D158` | Success, workout days |
-| `--red` | `#FF453A` | Danger, delete, missed |
-| `--border` | `#38383A` | Separators |
-| `--r` | `12px` | Border radius |
+## User Profile
+- **Akshika**, age 30, beginner, no trainer access
+- IT job (sedentary), 64kg, 5'4"
+- **Goal**: Lose 3kg in 3 months, build glutes, build general strength
+- **Frequency**: 5 sessions/week, ~70 min each
 
-Font: `-apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif`
+## Training Plan (Phase 1 — Months 1 to 1.5)
+
+### Weekly Structure: U/L/Rest/P/P/L/Rest
+- Day 1 Upper Strength · Day 2 Lower Strength · Day 3 Complete Rest · Day 4 Push + Finisher · Day 5 Pull + Finisher · Day 6 Legs/Glutes · Day 7 Rest
+- **Session-anchored** (NOT calendar-anchored): plan progresses by session completion, not by weekday
+- **2-week gap** → plan resets to Upper (Week A) with soft "Welcome back" banner
+
+### A/B Week Alternation
+- 5 sessions = one cycle (Upper → Lower → Push → Pull → Legs)
+- Full cycle completion flips entire plan to opposite week variant
+- Some exercises rotate per A/B variant (e.g., Machine Row Week A → 1 Hand Row Week B)
+
+### Anchor Exercises (strict tracking, progression chart)
+Lat Pulldown, DB Chest Press, DB Shoulder Press, Leg Press, Hip Thrust, Back Extension, Plank, Calf Raise (Day 6)
+
+### Finishers (Day 4 + Day 5, alternate per A/B)
+- Heavy Cardio: 25 min treadmill incline walk or cycle
+- Heavy Core Circuit: 5 exercises × 2 rounds (~12 min)
+
+### Pre-Workout Stretching
+- Daily: World's Greatest Stretch, Cat-Cow, Hip Flexor Lunge
+- Upper days add-on: PVC Shoulder Rotation, Band Pull-Aparts
+- Lower days add-on: Bodyweight Squat, Glute Bridge Activation
+
+### Phase 2 Unlocks (Month 1.5+, MANUAL trigger only)
+Romanian Deadlift, Bulgarian Split Squats, Bent Over Barbell Row, Barbell Squat — added after form review.
 
 ## Data Model
+
+### Plan (hardcoded in app)
 ```
-Exercise
-  id            string (UUID)
-  name          string (unique)
-  muscle_group  enum: back | biceps | shoulders | chest | triceps | legs | core
-  is_bodyweight boolean
-
-Session
-  id            string (UUID)
-  date          string (YYYY-MM-DD)
-  created_at    string (ISO timestamp)
-
-SessionExercise
-  id            string (UUID)
-  session_id    FK → Session.id
-  exercise_id   FK → Exercise.id
-  order         int
-
-Set
-  id                  string (UUID)
-  session_exercise_id FK → SessionExercise.id
-  set_number          int (1-based)
-  weight_kg           float | null (null = bodyweight)
-  reps                int
-
-MissedDay
-  id      string (UUID)
-  date    string (YYYY-MM-DD, unique)
-  reason  enum: work | social | wellness | travel | rest | other
+PLAN.cycle = ['upper','lower','push','pull','legs']
+PLAN.days[dayKey].blocks = [
+  { type:'stretching' },
+  { type:'cardio_warmup', minutes:10 },
+  { type:'exercise', exercise_key, sets, targetReps|targetSeconds, anchor?, week? },
+  { type:'finisher_cardio', minutes, week? },
+  { type:'finisher_core', rounds, exercises:[...], week? }
+]
 ```
+
+### Exercise
+- `id`, `key`, `name`, `group`, `bodyweight?`, `timeBased?`, `type?` (cardio)
+
+### Session
+- `id`, `date`, `created_at`, `completed_at`, `isPartial`, `inProgress`, `dayKey`, `weekVariant`, `retro`, `blocks[]`
+- Each block carries its logged state (sets with weight/reps/done, cardio actualMinutes/speed, etc.)
+- Partial sessions auto-saved as `inProgress:true`; can be resumed from Home
+
+### Plan State
+- `pointer` (0–4 index into cycle)
+- `weekVariant` ('A' or 'B')
+- `lastSessionDate` (for 2-week reset detection)
+- `lastCompletedDayKey`
 
 ## localStorage Keys
-| Key | Type | Description |
-|---|---|---|
-| `wt_exercises` | Exercise[] | Seeded on first launch (35 exercises) |
-| `wt_sessions` | Session[] | One per workout day |
-| `wt_session_exercises` | SessionExercise[] | Junction: session ↔ exercise |
-| `wt_sets` | Set[] | Individual set records |
-| `wt_missed_days` | MissedDay[] | Tagged missed days |
-
-## Key Formulas
-- **Estimated 1RM**: `weight_kg × (1 + reps / 30)` — top set = heaviest weight in a session
-- **Streak**: count consecutive days with sessions going backwards from today (or yesterday if no session today)
-- **Untagged missed days**: dates from first-ever session date to yesterday with no Session and no MissedDay record
+| Key | Description |
+|---|---|
+| `wt2_exercises` | Exercise library (seeded on first launch, ~33 exercises) |
+| `wt2_sessions` | All sessions (in-progress, partial, completed) |
+| `wt2_plan_state` | Current pointer + week variant |
+| `wt2_reset_banner` | Whether the welcome-back banner is currently shown |
 
 ## Screens
-| `screen` value | Nav tab | Purpose |
-|---|---|---|
-| `home` | Home | Streak, last session, missed day banner, Start Session CTA |
-| `session` | (modal-like, hides bottom nav) | Active session: search → reference strip → log sets → finish |
-| `history` | History | All sessions, reverse chronological |
-| `session-detail` | — | View + edit sets for a past session |
-| `progress` | — | Exercise history strip + 1RM line chart |
-| `missed-days` | — | Tag untagged missed dates with reason |
-| `reports` | Reports | Monthly frequency, muscle group coverage, exercise progress |
-| `library` | Library | Full exercise list, filter by muscle group, add custom |
+| Screen | Purpose |
+|---|---|
+| `home` | Hero (streak + PR callout) → Reports. Today's session card. Last session. Resume partial. Log past. |
+| `session` | Block-based active session (stretching → exercises → finisher). Sectioned scroll, next block reveals when prior is marked done. |
+| `history` | Reverse-chronological list of all sessions |
+| `session-detail` | Read-only view of a past session. Delete option. |
+| `reports` | Stats grid, GitHub-style heatmap (53 weeks), anchor progression cards (tap → chart), muscle group coverage 7d |
+| `exercise-detail` | Per-exercise top-set chart + recent sessions |
+| `library` | Filterable exercise list (chips by muscle group) |
+| `retro` | Log a past session (does not advance plan pointer) |
 
-## Navigation Pattern
-- Bottom nav: Home | History | Reports | Library (hidden during active session)
-- `navigate(screen, params)` pushes current screen to `screenHistory` stack
-- `goBack()` pops from stack
-- Session started via "Start Session" button — bypasses nav stack
+## Key UX Decisions (Locked)
+1. **Session view**: sectioned scroll. Each block is a card. Active block fully visible, future blocks dimmed.
+2. **Set logging**: pre-filled weight from last session, tap "Save" to confirm. Auto-fills target reps if blank.
+3. **Skip exercise**: allowed, no reason required.
+4. **Finisher**: just the last block in the session (cardio or core circuit).
+5. **Rest timer**: none.
+6. **Stretching**: list of moves, single "Done" button for the whole block. Ignorable.
+7. **Streak break**: 3+ days without a session.
+8. **Strength chart**: weight at first set of anchor exercise. Permissive — flags points where reps < target.
+9. **2-week gap**: auto-reset to Upper (Week A) with welcome-back banner.
+10. **A/B switch**: every 5 sessions (full cycle), the whole plan flips week variant.
+11. **Retro logging**: allowed via Home → "+ Log Past Session". Doesn't advance plan pointer.
+12. **Phase 2 unlock**: manual — no auto-unlock.
 
-## Session Logging Flow
-1. Tap "Start Session" → `screen = 'session'`, `sessionStep = 'search'`
-2. Type to search exercises (autocomplete via computed `filteredExercises`)
-3. Select exercise → `sessionStep = 'log'`
-4. Reference strip shows last 5 sessions for that exercise
-5. Weights pre-filled from most recent session for that exercise
-6. User fills reps, can add/remove sets (default 3)
-7. "Add to Session" → back to search step (`sessionStep = 'search'`)
-8. "Finish Session" → persists session + sessionExercises + sets to localStorage
+## Completion Definition
+- **Full** (🏆 + confetti): every exercise has ≥1 logged set AND every block is marked done
+- **Partial** (👏 + summary): otherwise
+- Both still count as a session toward streak/heatmap
 
-## Missed Days Logic
-- On mount: find all dates from first session → yesterday with no Session + no MissedDay
-- If any exist: banner on Home screen
-- Missed Days screen: user picks reason per date, saves to `wt_missed_days`
+## Formulas
+- **Streak**: consecutive days with sessions, allows up to 2-day gaps backwards from today/yesterday
+- **Progression**: latest first-set weight of an anchor exercise vs first-ever first-set weight
+- **Muscle group target volume** (sets/week): chest 9, back 12, shoulders 12, biceps 6, triceps 3, legs 14, glutes 17, core 9
 
-## Exercise Seed List (35 exercises, 7 muscle groups)
-Back (8): Lat Pull Down, Bent Over Deadlift, Machine Deadlift, Bent Over Barbell Row, 1 Hand Row, T-Bar Row Machine, Machine Row, Wide Pull Ups (bodyweight)
-Biceps (3): Preacher Curls, Dumbbell Curls, Rope Curls
-Shoulders (6): Shoulder DB Press, Overhead Press, Lateral Raise, Upright Rod, Face Pulls, Z-Press
-Chest (6): Bench Press, Dumbbell Press, Incline Bench Press, Decline Press, Butterfly, Incline Dumbbell Press
-Triceps (1): Triceps Pushdown
-Legs (9): Weighted Squats, Bulgarian Split Squats, Leg Press, Ham Curls, Calf Raise, Leg Extensions, Glute Bridges (bodyweight), Hip Thrust, Glute Press
-Core (0): user-added only
+## Known Limitations / Backlog
+### V1.1 backlog
+- Edit a saved session's sets retroactively (currently delete-only)
+- Body weight + progress photos (M8)
+- Weekly/monthly export/share for trainer (M7)
+- Day-specific stretching phase rotation (currently fixed)
 
-## Current Status
-### v1.0 — Built
-- [x] All 8 screens implemented
-- [x] Apple Health dark theme
-- [x] Full session logging flow (search → reference strip → sets → finish)
-- [x] Weight pre-fill from last session per exercise
-- [x] Add/remove sets (default 3)
-- [x] Session detail with inline set editing
-- [x] 1RM trend chart (Chart.js line chart)
-- [x] Missed days detection + tagging
-- [x] Monthly reports (frequency, muscle coverage, exercise list)
-- [x] Exercise library with muscle group filter + add custom
-- [x] Exercise seeding on first launch (35 exercises)
-- [x] PWA meta tags (add to home screen)
-
-### Known Limitations / v2 Backlog
-- No push notifications / reminders
-- No unit toggle (lbs)
-- No workout templates
-- Reports exercise trend % vs prev month not computed (shows peak 1RM only)
+### V2 backlog
+- Push reminders
+- Unit toggle (lbs)
+- Nutrition tracking
+- Deload week scheduling
+- Workout templates beyond current plan

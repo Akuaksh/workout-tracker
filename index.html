@@ -325,7 +325,7 @@
   </div>
 
   <!-- ========= SESSION (block-based) ========= -->
-  <div v-if="screen==='session'" class="screen no-nav session-screen">
+  <div v-if="screen==='session' && activeSession" class="screen no-nav session-screen">
     <div class="session-progress">
       <div class="session-progress-text">
         <span class="left">{{ activeSession.dayName }} · Week {{ activeSession.weekVariant }}</span>
@@ -360,7 +360,7 @@
         <template v-else-if="block.type==='cardio_warmup'">
           <div class="block-header">
             <div class="block-type">Block {{ bi+1 }}</div>
-            <div class="block-name">🚶 Treadmill Warm-up</div>
+            <div class="block-name">🚶 Treadmill Cardio</div>
             <div class="block-sub">{{ block.minutes }} min{{ block.note ? ', ' + block.note : '' }}</div>
           </div>
           <div class="block-body">
@@ -393,13 +393,12 @@
             <div v-for="(s,si) in block.sets" :key="si" class="set-row" :class="{logged:s.done}">
               <div class="set-num">{{ si+1 }}</div>
               <template v-if="!exerciseIsBodyweight(block.exercise_key)">
-                <input class="set-input" type="number" inputmode="decimal" v-model.number="s.weight" :placeholder="s.prefillWeight || '–'" :disabled="bi !== activeBlockIndex && !s.done">
+                <input class="set-input" type="number" inputmode="decimal" v-model.number="s.weight" :placeholder="s.prefillWeight || '–'" :disabled="bi !== activeBlockIndex">
                 <span class="set-unit">kg</span>
                 <span class="set-x">×</span>
               </template>
-              <input class="set-input" type="number" inputmode="numeric" v-model.number="s.reps" :placeholder="block.targetReps || block.targetSeconds || '–'" :disabled="bi !== activeBlockIndex && !s.done">
+              <input class="set-input" type="number" inputmode="numeric" v-model.number="s.reps" :placeholder="block.targetReps || block.targetSeconds || '–'" :disabled="bi !== activeBlockIndex">
               <span class="set-unit">{{ block.targetSeconds ? 'sec' : 'rep' }}</span>
-              <button class="set-save" :class="{done:s.done}" @click="logSet(bi,si)" :disabled="bi !== activeBlockIndex">{{ s.done ? '' : 'Save' }}</button>
             </div>
             <div v-if="bi === activeBlockIndex" class="add-remove">
               <button @click="removeSet(bi)" :disabled="block.sets.length <= 1">– Set</button>
@@ -408,8 +407,9 @@
           </div>
           <div class="block-actions">
             <button v-if="!block.done && bi === activeBlockIndex" class="block-action-btn" @click="skipBlock(bi)">Skip</button>
-            <button v-if="!block.done && bi === activeBlockIndex" class="block-action-btn primary" @click="markBlockDone(bi)" :disabled="!blockHasAnyLoggedSet(block)">Done</button>
+            <button v-if="!block.done && bi === activeBlockIndex" class="block-action-btn primary" @click="markBlockDone(bi)">Done</button>
             <button v-if="block.done" class="block-action-btn success" disabled>✓ Done</button>
+            <button v-if="block.done" class="block-action-btn" @click="editBlock(bi)">Edit</button>
           </div>
         </template>
 
@@ -521,7 +521,7 @@
         <template v-else-if="block.type==='cardio_warmup' || block.type==='finisher_cardio'">
           <div class="row">
             <div class="grow">
-              <div style="font-weight:600;">{{ block.type==='cardio_warmup' ? '🚶 Warm-up' : '🏃 Cardio Finisher' }}</div>
+              <div style="font-weight:600;">{{ block.type==='cardio_warmup' ? '🚶 Treadmill Cardio' : '🏃 Cardio Finisher' }}</div>
               <div class="row-detail">{{ block.actualMinutes || block.minutes }} min{{ block.speed ? ' · ' + block.speed + ' km/h' : '' }}{{ block.intensity ? ' · ' + block.intensity : '' }}<span v-if="!block.done" class="muted"> · skipped</span></div>
             </div>
           </div>
@@ -791,7 +791,6 @@ const PLAN = {
   days: {
     upper: { name:'Upper Strength', estMin:70, blocks:[
       { type:'stretching' },
-      { type:'cardio_warmup', minutes:10 },
       { type:'exercise', exercise_key:'db_chest_press', sets:3, targetReps:8, anchor:true },
       { type:'exercise', exercise_key:'lat_pulldown', sets:3, targetReps:8, anchor:true },
       { type:'exercise', exercise_key:'db_shoulder_press', sets:3, targetReps:10, anchor:true },
@@ -799,11 +798,11 @@ const PLAN = {
       { type:'exercise', exercise_key:'one_hand_row', sets:3, targetReps:10, week:'B' },
       { type:'exercise', exercise_key:'lateral_raise', sets:3, targetReps:15 },
       { type:'exercise', exercise_key:'triceps_pushdown', sets:3, targetReps:12 },
-      { type:'exercise', exercise_key:'plank', sets:3, targetSeconds:30, anchor:true }
+      { type:'exercise', exercise_key:'plank', sets:3, targetSeconds:30, anchor:true },
+      { type:'cardio_warmup', minutes:10 }
     ]},
     lower: { name:'Lower Strength', estMin:70, blocks:[
       { type:'stretching' },
-      { type:'cardio_warmup', minutes:10, note:'incline' },
       { type:'exercise', exercise_key:'goblet_squat', sets:3, targetReps:10, week:'A' },
       { type:'exercise', exercise_key:'walking_lunges', sets:3, targetReps:10, week:'B' },
       { type:'exercise', exercise_key:'leg_press', sets:3, targetReps:10, anchor:true },
@@ -811,7 +810,8 @@ const PLAN = {
       { type:'exercise', exercise_key:'back_extension', sets:3, targetReps:12, anchor:true },
       { type:'exercise', exercise_key:'ham_curls', sets:3, targetReps:12, week:'A' },
       { type:'exercise', exercise_key:'leg_extensions', sets:3, targetReps:12, week:'B' },
-      { type:'exercise', exercise_key:'calf_raise', sets:3, targetReps:15 }
+      { type:'exercise', exercise_key:'calf_raise', sets:3, targetReps:15 },
+      { type:'cardio_warmup', minutes:10, note:'incline' }
     ]},
     push: { name:'Push + Finisher', estMin:75, blocks:[
       { type:'stretching' },
@@ -849,14 +849,14 @@ const PLAN = {
     ]},
     legs: { name:'Legs + Glutes', estMin:75, blocks:[
       { type:'stretching' },
-      { type:'cardio_warmup', minutes:10 },
       { type:'exercise', exercise_key:'hip_thrust', sets:3, targetReps:15, anchor:true },
       { type:'exercise', exercise_key:'sumo_squat', sets:3, targetReps:12, week:'A' },
       { type:'exercise', exercise_key:'goblet_squat', sets:3, targetReps:12, week:'B' },
       { type:'exercise', exercise_key:'leg_press', sets:3, targetReps:15, anchor:true },
       { type:'exercise', exercise_key:'leg_extensions', sets:3, targetReps:15 },
       { type:'exercise', exercise_key:'ham_curls', sets:3, targetReps:15 },
-      { type:'exercise', exercise_key:'calf_raise', sets:3, targetReps:15, anchor:true }
+      { type:'exercise', exercise_key:'calf_raise', sets:3, targetReps:15, anchor:true },
+      { type:'cardio_warmup', minutes:10 }
     ]}
   },
   stretching: {
@@ -1322,10 +1322,28 @@ createApp({
     /* ---------- BLOCK ACTIONS ---------- */
     function markBlockDone(bi) {
       const block = activeSession.value.blocks[bi];
+      if (block.type === 'exercise') {
+        block.sets.forEach(set => {
+          if (set.reps == null || set.reps === '') {
+            set.reps = block.targetReps || block.targetSeconds;
+          }
+          if (!exerciseIsBodyweight(block.exercise_key) && (set.weight == null || set.weight === '')) {
+            set.weight = set.prefillWeight;
+          }
+          set.done = true;
+        });
+      }
       block.done = true;
       // Advance to next undone block
       const next = activeSession.value.blocks.findIndex((b, i) => i > bi && !b.done);
       if (next !== -1) activeBlockIndex.value = next;
+      persistSession();
+    }
+    function editBlock(bi) {
+      const block = activeSession.value.blocks[bi];
+      block.done = false;
+      block.skipped = false;
+      activeBlockIndex.value = bi;
       persistSession();
     }
     function skipBlock(bi) {
@@ -1408,11 +1426,11 @@ createApp({
         totalVolume: totalVolume > 0 ? totalVolume.toFixed(0) : null
       };
       showCelebration.value = true;
-      activeSession.value = null;
     }
 
     function dismissCelebration() {
       showCelebration.value = false;
+      activeSession.value = null;
       screen.value = 'home';
     }
     function confettiStyle(n) {
@@ -1516,7 +1534,7 @@ createApp({
       dayOf, monthOf, countLoggedExercises, historyExerciseSummary, blockHasAnyLoggedSet,
       // actions
       navigate, goBack, startSession, resumeSession, startRetroSession,
-      logSet, addSet, removeSet, markBlockDone, skipBlock, cancelOrPauseSession,
+      logSet, addSet, removeSet, markBlockDone, editBlock, skipBlock, cancelOrPauseSession,
       finishSession, dismissCelebration, confettiStyle, deleteDetailSession,
       dismissResetBanner,
       // refs

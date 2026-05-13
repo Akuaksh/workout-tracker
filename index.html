@@ -328,8 +328,9 @@
   <div v-if="screen==='session' && activeSession" class="screen no-nav session-screen">
     <div class="session-progress">
       <div class="session-progress-text">
-        <span class="left">{{ activeSession.dayName }} · Week {{ activeSession.weekVariant }}</span>
-        <button class="session-cancel" @click="cancelOrPauseSession">Pause</button>
+        <button class="back-btn" @click="cancelOrPauseSession">‹ Home</button>
+        <span class="left" style="font-size:13px;">{{ activeSession.dayName }} · Week {{ activeSession.weekVariant }}</span>
+        <div style="min-width:60px;"></div>
       </div>
       <div class="session-progress-bar"><div class="session-progress-fill" :style="{width: sessionProgressPct + '%'}"></div></div>
     </div>
@@ -965,7 +966,7 @@ createApp({
     /* ---------- COMPUTED: STREAK ---------- */
     const streak = computed(() => {
       if (!sessions.value.length) return 0;
-      const dates = new Set(sessions.value.filter(s => !s.isPartial).map(s => s.date));
+      const dates = new Set(sessions.value.filter(s => !!s.completed_at).map(s => s.date));
       if (!dates.size) return 0;
       // Count consecutive days backwards from today (or yesterday if no session today)
       let count = 0;
@@ -1006,13 +1007,13 @@ createApp({
       const now = new Date();
       const day = now.getDay() || 7; // 1=Mon..7=Sun
       const monday = new Date(now); monday.setDate(now.getDate() - (day - 1)); monday.setHours(0,0,0,0);
-      const count = sessions.value.filter(s => !s.isPartial && new Date(s.date) >= monday).length;
+      const count = sessions.value.filter(s => !!s.completed_at && new Date(s.date) >= monday).length;
       return { completed: count };
     });
     const monthStats = computed(() => {
       const now = new Date();
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const count = sessions.value.filter(s => !s.isPartial && new Date(s.date) >= monthStart).length;
+      const count = sessions.value.filter(s => !!s.completed_at && new Date(s.date) >= monthStart).length;
       return { completed: count };
     });
 
@@ -1023,7 +1024,7 @@ createApp({
       // 53 weeks × 7 days, ending today
       const dayCount = 371; // 53 * 7
       const sessionsByDay = {};
-      sessions.value.filter(s => !s.isPartial).forEach(s => {
+      sessions.value.filter(s => !!s.completed_at).forEach(s => {
         sessionsByDay[s.date] = (sessionsByDay[s.date] || 0) + 1;
       });
       const start = new Date(now); start.setDate(now.getDate() - dayCount + 1);
@@ -1035,7 +1036,7 @@ createApp({
       }
       return cells;
     });
-    const heatmapTotal = computed(() => sessions.value.filter(s => !s.isPartial).length);
+    const heatmapTotal = computed(() => sessions.value.filter(s => !!s.completed_at).length);
 
     /* ---------- COMPUTED: ANCHOR PROGRESSION ---------- */
     const anchorProgression = computed(() => {
@@ -1050,7 +1051,7 @@ createApp({
         if (!ex) continue;
         // Find all logged first-set weights for this exercise
         const dataPoints = [];
-        sessions.value.filter(s => !s.isPartial).forEach(s => {
+        sessions.value.filter(s => !!s.completed_at).forEach(s => {
           s.blocks.forEach(b => {
             if (b.type === 'exercise' && b.exercise_key === key && b.anchor && b.sets && b.sets[0] && b.sets[0].done) {
               dataPoints.push({ date: s.date, weight: b.sets[0].weight, reps: b.sets[0].reps });
@@ -1080,7 +1081,7 @@ createApp({
     /* ---------- COMPUTED: TOP CALLOUT (hero card) ---------- */
     const topCallout = computed(() => {
       // Try: latest PR (anchor weight increased recently)
-      const recentSessions = sessions.value.filter(s => !s.isPartial).slice(-10);
+      const recentSessions = sessions.value.filter(s => !!s.completed_at).slice(-10);
       for (const ap of anchorProgression.value) {
         if (ap.deltaClass === 'up' && ap.sessions >= 2) {
           return { icon:'🏆', title:'New PR · ' + ap.name, sub:'Now ' + ap.current + ap.unit + ' (' + ap.deltaStr + ')' };
@@ -1104,7 +1105,7 @@ createApp({
       const result = {};
       Object.keys(targets).forEach(k => result[k] = 0);
       const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 7);
-      sessions.value.filter(s => !s.isPartial && new Date(s.date) >= cutoff).forEach(s => {
+      sessions.value.filter(s => !!s.completed_at && new Date(s.date) >= cutoff).forEach(s => {
         s.blocks.forEach(b => {
           if (b.type !== 'exercise' || !b.exercise_key) return;
           const ex = exercises.value.find(e => e.key === b.exercise_key);
@@ -1154,7 +1155,7 @@ createApp({
       if (!detailExercise.value) return [];
       const key = detailExercise.value.key;
       const result = [];
-      [...sessions.value].filter(s => !s.isPartial).sort((a,b) => b.date.localeCompare(a.date)).forEach(s => {
+      [...sessions.value].filter(s => !!s.completed_at).sort((a,b) => b.date.localeCompare(a.date)).forEach(s => {
         s.blocks.forEach(b => {
           if (b.type === 'exercise' && b.exercise_key === key) {
             const logged = b.sets.filter(x => x.done);
@@ -1210,7 +1211,7 @@ createApp({
 
     function getPrefillWeight(exKey) {
       // Find most recent session where this exercise was logged with weight
-      const sorted = [...sessions.value].filter(s => !s.isPartial).sort((a,b) => b.date.localeCompare(a.date));
+      const sorted = [...sessions.value].filter(s => !!s.completed_at).sort((a,b) => b.date.localeCompare(a.date));
       for (const s of sorted) {
         for (const b of s.blocks) {
           if (b.type === 'exercise' && b.exercise_key === exKey) {
@@ -1476,7 +1477,7 @@ createApp({
       const key = detailExercise.value.key;
       const ex = exercises.value.find(e => e.key === key);
       const data = [];
-      [...sessions.value].filter(s => !s.isPartial).sort((a,b) => a.date.localeCompare(b.date)).forEach(s => {
+      [...sessions.value].filter(s => !!s.completed_at).sort((a,b) => a.date.localeCompare(b.date)).forEach(s => {
         s.blocks.forEach(b => {
           if (b.type === 'exercise' && b.exercise_key === key && b.sets[0] && b.sets[0].done) {
             const val = ex.timeBased ? b.sets[0].reps : (ex.bodyweight ? b.sets[0].reps : b.sets[0].weight);

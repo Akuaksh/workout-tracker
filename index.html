@@ -322,6 +322,36 @@
       </div>
 
       <button class="btn btn-secondary mt12" @click="navigate('retro')">+ Log Past Session</button>
+
+      <!-- Backup overdue banner (Option A) -->
+      <div v-if="backupOverdue" class="banner" style="border-color:rgba(255,149,0,0.4); background:rgba(255,149,0,0.08); margin-top:14px;">
+        <div class="banner-icon">💾</div>
+        <div class="grow">
+          <strong>Backup overdue</strong><br>
+          <small class="muted">{{ lastBackupLabel }} — export your data now.</small>
+        </div>
+        <button class="btn-sm btn-sm-orange" @click="exportData">Backup</button>
+      </div>
+
+      <!-- Permanent backup row (Option C) -->
+      <div class="section-label">Data</div>
+      <div class="card">
+        <div class="row row-tap" @click="exportData">
+          <div class="grow">
+            <div style="font-weight:600;">Export Backup</div>
+            <div class="row-detail">{{ lastBackupLabel }}</div>
+          </div>
+          <div class="chevron">›</div>
+        </div>
+        <div class="row row-tap" @click="triggerImport">
+          <div class="grow">
+            <div style="font-weight:600;">Restore from Backup</div>
+            <div class="row-detail">Import a JSON backup file</div>
+          </div>
+          <div class="chevron">›</div>
+        </div>
+      </div>
+      <input type="file" ref="importFileInput" accept=".json" style="display:none" @change="importData">
     </div>
   </div>
 
@@ -631,8 +661,6 @@
           <button class="btn-sm btn-sm-orange" @click="triggerImport">Import JSON</button>
         </div>
       </div>
-      <input type="file" ref="importFileInput" accept=".json" style="display:none" @change="importData">
-
     </div>
   </div>
 
@@ -1547,6 +1575,13 @@ createApp({
       return 'Last backup: ' + relativeDate(lastBackupDate.value.slice(0,10));
     });
 
+    const backupOverdue = computed(() => {
+      if (!sessions.value.filter(s => !s.inProgress).length) return false;
+      if (!lastBackupDate.value) return true;
+      const daysSince = Math.floor((Date.now() - new Date(lastBackupDate.value).getTime()) / 86400000);
+      return daysSince >= 7;
+    });
+
     function exportData() {
       const data = {
         exported_at: new Date().toISOString(),
@@ -1620,7 +1655,7 @@ createApp({
       weekStats, monthStats, heatmap, heatmapTotal, anchorProgression, topCallout,
       muscleGroupCoverage, sessionProgressPct, allBlocksDone, sessionCanFinish,
       stretchDaySpecific, detailSession, detailExercise, exerciseRecentSessions,
-      filteredLibrary, lastBackupLabel,
+      filteredLibrary, lastBackupLabel, backupOverdue,
       // helpers
       exerciseName, exerciseIsBodyweight, planDayName, groupLabel, relativeDate,
       dayOf, monthOf, countLoggedExercises, historyExerciseSummary, blockHasAnyLoggedSet,

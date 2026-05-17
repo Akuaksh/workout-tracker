@@ -614,6 +614,25 @@
         </div>
       </div>
 
+      <div class="section-label">Data & Backup</div>
+      <div class="card">
+        <div class="row">
+          <div class="grow">
+            <div style="font-weight:600;">Backup Data</div>
+            <div class="row-detail">{{ lastBackupLabel }}</div>
+          </div>
+          <button class="btn-sm btn-sm-blue" @click="exportData">Export JSON</button>
+        </div>
+        <div class="row">
+          <div class="grow">
+            <div style="font-weight:600;">Restore from Backup</div>
+            <div class="row-detail">Import a previously exported JSON file</div>
+          </div>
+          <button class="btn-sm btn-sm-orange" @click="triggerImport">Import JSON</button>
+        </div>
+      </div>
+      <input type="file" ref="importFileInput" accept=".json" style="display:none" @change="importData">
+
     </div>
   </div>
 
@@ -878,7 +897,8 @@ const LS = {
   exercises: 'wt2_exercises',
   sessions: 'wt2_sessions',
   planState: 'wt2_plan_state',
-  resetBanner: 'wt2_reset_banner'
+  resetBanner: 'wt2_reset_banner',
+  lastBackup: 'wt2_last_backup'
 };
 const load = (k, def) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch { return def; } };
 const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
@@ -907,6 +927,7 @@ createApp({
     const sessions = ref(load(LS.sessions, []));
     const planState = reactive(load(LS.planState, { pointer:0, weekVariant:'A', lastSessionDate:null, lastCompletedDayKey:null }));
     const resetBannerShown = ref(load(LS.resetBanner, false));
+    const lastBackupDate = ref(load(LS.lastBackup, null));
 
     const activeSession = ref(null);
     const activeBlockIndex = ref(0);
@@ -1434,6 +1455,7 @@ createApp({
       showCelebration.value = false;
       activeSession.value = null;
       screen.value = 'home';
+      nextTick(() => autoBackupIfDue());
     }
     function confettiStyle(n) {
       const colors = ['#ff9500','#0a84ff','#30d158','#ffd60a','#bf5af2','#ff375f'];
@@ -1517,6 +1539,74 @@ createApp({
       });
     }
 
+    /* ---------- BACKUP / RESTORE ---------- */
+    const importFileInput = ref(null);
+
+    const lastBackupLabel = computed(() => {
+      if (!lastBackupDate.value) return 'Never backed up';
+      return 'Last backup: ' + relativeDate(lastBackupDate.value.slice(0,10));
+    });
+
+    function exportData() {
+      const data = {
+        exported_at: new Date().toISOString(),
+        version: 1,
+        sessions: sessions.value,
+        plan_state: { ...planState },
+        exercises: exercises.value
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `workout-backup-${localDateStr(new Date())}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      lastBackupDate.value = new Date().toISOString();
+      save(LS.lastBackup, lastBackupDate.value);
+    }
+
+    function autoBackupIfDue() {
+      if (!sessions.value.filter(s => !s.inProgress).length) return;
+      const last = lastBackupDate.value ? new Date(lastBackupDate.value) : null;
+      const daysSince = last ? Math.floor((Date.now() - last.getTime()) / 86400000) : 999;
+      if (daysSince >= 7) exportData();
+    }
+
+    function triggerImport() {
+      importFileInput.value.click();
+    }
+
+    function importData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (!data.sessions) { alert('Invalid backup file.'); return; }
+          if (!confirm(`Restore ${data.sessions.length} sessions from ${data.exported_at ? data.exported_at.slice(0,10) : 'backup'}? This will overwrite current data.`)) return;
+          sessions.value = data.sessions;
+          save(LS.sessions, sessions.value);
+          if (data.plan_state) {
+            Object.assign(planState, data.plan_state);
+            save(LS.planState, planState);
+          }
+          if (data.exercises && data.exercises.length) {
+            exercises.value = data.exercises;
+            save(LS.exercises, exercises.value);
+          }
+          alert('Restored successfully. ' + data.sessions.length + ' sessions loaded.');
+        } catch {
+          alert('Could not read backup file. Make sure it\'s a valid workout backup JSON.');
+        }
+        event.target.value = '';
+      };
+      reader.readAsText(file);
+    }
+
     /* ---------- EXPOSE ---------- */
     return {
       // state
@@ -1530,7 +1620,7 @@ createApp({
       weekStats, monthStats, heatmap, heatmapTotal, anchorProgression, topCallout,
       muscleGroupCoverage, sessionProgressPct, allBlocksDone, sessionCanFinish,
       stretchDaySpecific, detailSession, detailExercise, exerciseRecentSessions,
-      filteredLibrary,
+      filteredLibrary, lastBackupLabel,
       // helpers
       exerciseName, exerciseIsBodyweight, planDayName, groupLabel, relativeDate,
       dayOf, monthOf, countLoggedExercises, historyExerciseSummary, blockHasAnyLoggedSet,
@@ -1538,9 +1628,9 @@ createApp({
       navigate, goBack, startSession, resumeSession, startRetroSession,
       logSet, addSet, removeSet, markBlockDone, editBlock, skipBlock, cancelOrPauseSession,
       finishSession, dismissCelebration, confettiStyle, deleteDetailSession,
-      dismissResetBanner,
+      dismissResetBanner, exportData, triggerImport, importData,
       // refs
-      exerciseChart
+      exerciseChart, importFileInput
     };
   }
 }).mount('#app');

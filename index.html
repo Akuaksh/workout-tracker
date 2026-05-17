@@ -739,7 +739,7 @@ const SEED_EXERCISES = [
   { key:'lat_pulldown', name:'Lat Pulldown', group:'back' },
   { key:'machine_row', name:'Machine Row', group:'back' },
   { key:'one_hand_row', name:'One Hand Row', group:'back' },
-  { key:'cable_rows', name:'Cable Rows', group:'back' },
+  { key:'cable_rows', name:'Seated Cable Row', group:'back' },
   { key:'back_extension', name:'Back Extension', group:'back' },
   // Shoulders
   { key:'db_shoulder_press', name:'DB Shoulder Press', group:'shoulders' },
@@ -793,31 +793,28 @@ const MUSCLE_GROUPS = [
 const PLAN = {
   cycle: ['upper','lower','push','pull','legs'],
   days: {
-    upper: { name:'Upper Strength', estMin:70, blocks:[
+    upper: { name:'Upper Strength', estMin:60, blocks:[
       { type:'stretching' },
       { type:'exercise', exercise_key:'db_chest_press', sets:3, targetReps:8, anchor:true },
       { type:'exercise', exercise_key:'lat_pulldown', sets:3, targetReps:8, anchor:true },
       { type:'exercise', exercise_key:'db_shoulder_press', sets:3, targetReps:10, anchor:true },
-      { type:'exercise', exercise_key:'plank', sets:3, targetSeconds:30, anchor:true },
       { type:'exercise', exercise_key:'machine_row', sets:3, targetReps:10, week:'A' },
       { type:'exercise', exercise_key:'one_hand_row', sets:3, targetReps:10, week:'B' },
       { type:'exercise', exercise_key:'lateral_raise', sets:3, targetReps:15 },
-      { type:'exercise', exercise_key:'triceps_pushdown', sets:3, targetReps:12 },
+      { type:'exercise', exercise_key:'db_curls', sets:3, targetReps:12 },
       { type:'cardio_warmup', minutes:10 }
     ]},
-    lower: { name:'Lower Strength', estMin:70, blocks:[
+    lower: { name:'Lower Strength', estMin:60, blocks:[
       { type:'stretching' },
       { type:'exercise', exercise_key:'leg_press', sets:3, targetReps:10, anchor:true },
       { type:'exercise', exercise_key:'hip_thrust', sets:3, targetReps:12, anchor:true },
       { type:'exercise', exercise_key:'back_extension', sets:3, targetReps:12, anchor:true },
       { type:'exercise', exercise_key:'goblet_squat', sets:3, targetReps:10, week:'A' },
       { type:'exercise', exercise_key:'walking_lunges', sets:3, targetReps:10, week:'B' },
-      { type:'exercise', exercise_key:'ham_curls', sets:3, targetReps:12, week:'A' },
-      { type:'exercise', exercise_key:'leg_extensions', sets:3, targetReps:12, week:'B' },
       { type:'exercise', exercise_key:'calf_raise', sets:3, targetReps:15 },
       { type:'cardio_warmup', minutes:10, note:'incline' }
     ]},
-    push: { name:'Push + Finisher', estMin:75, blocks:[
+    push: { name:'Push + Finisher', estMin:65, blocks:[
       { type:'stretching' },
       { type:'exercise', exercise_key:'db_chest_press', sets:3, targetReps:12, anchor:true },
       { type:'exercise', exercise_key:'db_shoulder_press', sets:3, targetReps:12, anchor:true },
@@ -825,6 +822,7 @@ const PLAN = {
       { type:'exercise', exercise_key:'db_chest_flyes', sets:3, targetReps:12, week:'B' },
       { type:'exercise', exercise_key:'lateral_raise', sets:3, targetReps:15, week:'A' },
       { type:'exercise', exercise_key:'shrugs', sets:3, targetReps:15, week:'B' },
+      { type:'exercise', exercise_key:'triceps_pushdown', sets:3, targetReps:12 },
       { type:'finisher_cardio', minutes:25, week:'A' },
       { type:'finisher_core', rounds:2, week:'B', exercises:[
         { key:'plank', seconds:45 },
@@ -834,11 +832,11 @@ const PLAN = {
         { key:'leg_raises', reps:12 }
       ]}
     ]},
-    pull: { name:'Pull + Finisher', estMin:75, blocks:[
+    pull: { name:'Pull + Finisher', estMin:65, blocks:[
       { type:'stretching' },
       { type:'exercise', exercise_key:'lat_pulldown', sets:3, targetReps:12, anchor:true },
-      { type:'exercise', exercise_key:'one_hand_row', sets:3, targetReps:12, week:'A' },
-      { type:'exercise', exercise_key:'cable_rows', sets:3, targetReps:12, week:'B' },
+      { type:'exercise', exercise_key:'cable_rows', sets:3, targetReps:10, anchor:true },
+      { type:'exercise', exercise_key:'one_hand_row', sets:3, targetReps:12 },
       { type:'exercise', exercise_key:'preacher_curls', sets:3, targetReps:12, week:'A' },
       { type:'exercise', exercise_key:'db_curls', sets:3, targetReps:12, week:'B' },
       { type:'exercise', exercise_key:'face_pulls', sets:3, targetReps:15 },
@@ -851,14 +849,13 @@ const PLAN = {
       ]},
       { type:'finisher_cardio', minutes:25, week:'B' }
     ]},
-    legs: { name:'Legs + Glutes', estMin:75, blocks:[
+    legs: { name:'Legs + Glutes', estMin:65, blocks:[
       { type:'stretching' },
       { type:'exercise', exercise_key:'hip_thrust', sets:3, targetReps:15, anchor:true },
       { type:'exercise', exercise_key:'leg_press', sets:3, targetReps:15, anchor:true },
       { type:'exercise', exercise_key:'calf_raise', sets:3, targetReps:15, anchor:true },
       { type:'exercise', exercise_key:'sumo_squat', sets:3, targetReps:12, week:'A' },
       { type:'exercise', exercise_key:'goblet_squat', sets:3, targetReps:12, week:'B' },
-      { type:'exercise', exercise_key:'leg_extensions', sets:3, targetReps:15 },
       { type:'exercise', exercise_key:'ham_curls', sets:3, targetReps:15 },
       { type:'cardio_warmup', minutes:10 }
     ]}
@@ -1549,3 +1546,4 @@ createApp({
 }).mount('#app');
 </script>
 </body>
+</html>

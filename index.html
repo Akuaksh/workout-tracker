@@ -160,8 +160,9 @@
     .nav-tab-icon { font-size:22px; line-height:1; }
 
     /* Heatmap */
-    .heatmap { display:grid; grid-template-columns:repeat(53,1fr); gap:3px; padding:10px 0; }
-    .heatmap-cell { aspect-ratio:1; background:var(--card2); border-radius:2px; min-height:10px; }
+    .heatmap-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .heatmap { display:grid; grid-template-columns:repeat(26,1fr); gap:2px; padding:6px 0; min-width:0; }
+    .heatmap-cell { aspect-ratio:1; background:var(--card2); border-radius:2px; }
     .heatmap-cell.l1 { background:rgba(255,149,0,0.25); }
     .heatmap-cell.l2 { background:rgba(255,149,0,0.55); }
     .heatmap-cell.l3 { background:var(--orange); }
@@ -574,9 +575,11 @@
 
       <div class="section-label">Activity</div>
       <div class="card card-pad">
-        <div style="font-size:13px; color:var(--text2); margin-bottom:8px;">{{ heatmapTotal }} sessions in the last year</div>
-        <div class="heatmap">
-          <div v-for="(cell,i) in heatmap" :key="i" class="heatmap-cell" :class="'l' + cell.level"></div>
+        <div style="font-size:13px; color:var(--text2); margin-bottom:8px;">{{ heatmapTotal }} sessions · last 6 months</div>
+        <div class="heatmap-scroll">
+          <div class="heatmap">
+            <div v-for="(cell,i) in heatmap" :key="i" class="heatmap-cell" :class="'l' + cell.level"></div>
+          </div>
         </div>
         <div class="heatmap-legend">
           Less
@@ -967,7 +970,7 @@ createApp({
     /* ---------- COMPUTED: STREAK ---------- */
     const streak = computed(() => {
       if (!sessions.value.length) return 0;
-      const dates = new Set(sessions.value.filter(s => !!s.completed_at).map(s => s.date));
+      const dates = new Set(sessions.value.filter(s => !s.inProgress).map(s => s.date));
       if (!dates.size) return 0;
       // Count consecutive days backwards from today (or yesterday if no session today)
       let count = 0;
@@ -1008,13 +1011,13 @@ createApp({
       const now = new Date();
       const day = now.getDay() || 7; // 1=Mon..7=Sun
       const monday = new Date(now); monday.setDate(now.getDate() - (day - 1)); monday.setHours(0,0,0,0);
-      const count = sessions.value.filter(s => !!s.completed_at && new Date(s.date) >= monday).length;
+      const count = sessions.value.filter(s => !s.inProgress && new Date(s.date) >= monday).length;
       return { completed: count };
     });
     const monthStats = computed(() => {
       const now = new Date();
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const count = sessions.value.filter(s => !!s.completed_at && new Date(s.date) >= monthStart).length;
+      const count = sessions.value.filter(s => !s.inProgress && new Date(s.date) >= monthStart).length;
       return { completed: count };
     });
 
@@ -1022,10 +1025,10 @@ createApp({
     const heatmap = computed(() => {
       const cells = [];
       const now = new Date(); now.setHours(0,0,0,0);
-      // 53 weeks × 7 days, ending today
-      const dayCount = 371; // 53 * 7
+      // 26 weeks × 7 days = 6 months, ending today
+      const dayCount = 182;
       const sessionsByDay = {};
-      sessions.value.filter(s => !!s.completed_at).forEach(s => {
+      sessions.value.filter(s => !s.inProgress).forEach(s => {
         sessionsByDay[s.date] = (sessionsByDay[s.date] || 0) + 1;
       });
       const start = new Date(now); start.setDate(now.getDate() - dayCount + 1);
@@ -1037,7 +1040,7 @@ createApp({
       }
       return cells;
     });
-    const heatmapTotal = computed(() => sessions.value.filter(s => !!s.completed_at).length);
+    const heatmapTotal = computed(() => sessions.value.filter(s => !s.inProgress).length);
 
     /* ---------- COMPUTED: ANCHOR PROGRESSION ---------- */
     const anchorProgression = computed(() => {
@@ -1052,7 +1055,7 @@ createApp({
         if (!ex) continue;
         // Find all logged first-set weights for this exercise
         const dataPoints = [];
-        sessions.value.filter(s => !!s.completed_at).forEach(s => {
+        sessions.value.filter(s => !s.inProgress).forEach(s => {
           s.blocks.forEach(b => {
             if (b.type === 'exercise' && b.exercise_key === key && b.anchor && b.sets && b.sets[0] && b.sets[0].done) {
               dataPoints.push({ date: s.date, weight: b.sets[0].weight, reps: b.sets[0].reps });
@@ -1082,7 +1085,7 @@ createApp({
     /* ---------- COMPUTED: TOP CALLOUT (hero card) ---------- */
     const topCallout = computed(() => {
       // Try: latest PR (anchor weight increased recently)
-      const recentSessions = sessions.value.filter(s => !!s.completed_at).slice(-10);
+      const recentSessions = sessions.value.filter(s => !s.inProgress).slice(-10);
       for (const ap of anchorProgression.value) {
         if (ap.deltaClass === 'up' && ap.sessions >= 2) {
           return { icon:'🏆', title:'New PR · ' + ap.name, sub:'Now ' + ap.current + ap.unit + ' (' + ap.deltaStr + ')' };
@@ -1106,7 +1109,7 @@ createApp({
       const result = {};
       Object.keys(targets).forEach(k => result[k] = 0);
       const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 7);
-      sessions.value.filter(s => !!s.completed_at && new Date(s.date) >= cutoff).forEach(s => {
+      sessions.value.filter(s => !s.inProgress && new Date(s.date) >= cutoff).forEach(s => {
         s.blocks.forEach(b => {
           if (b.type !== 'exercise' || !b.exercise_key) return;
           const ex = exercises.value.find(e => e.key === b.exercise_key);
@@ -1156,7 +1159,7 @@ createApp({
       if (!detailExercise.value) return [];
       const key = detailExercise.value.key;
       const result = [];
-      [...sessions.value].filter(s => !!s.completed_at).sort((a,b) => b.date.localeCompare(a.date)).forEach(s => {
+      [...sessions.value].filter(s => !s.inProgress).sort((a,b) => b.date.localeCompare(a.date)).forEach(s => {
         s.blocks.forEach(b => {
           if (b.type === 'exercise' && b.exercise_key === key) {
             const logged = b.sets.filter(x => x.done);
@@ -1212,7 +1215,7 @@ createApp({
 
     function getPrefillWeight(exKey) {
       // Find most recent session where this exercise was logged with weight
-      const sorted = [...sessions.value].filter(s => !!s.completed_at).sort((a,b) => b.date.localeCompare(a.date));
+      const sorted = [...sessions.value].filter(s => !s.inProgress).sort((a,b) => b.date.localeCompare(a.date));
       for (const s of sorted) {
         for (const b of s.blocks) {
           if (b.type === 'exercise' && b.exercise_key === exKey) {
@@ -1478,7 +1481,7 @@ createApp({
       const key = detailExercise.value.key;
       const ex = exercises.value.find(e => e.key === key);
       const data = [];
-      [...sessions.value].filter(s => !!s.completed_at).sort((a,b) => a.date.localeCompare(b.date)).forEach(s => {
+      [...sessions.value].filter(s => !s.inProgress).sort((a,b) => a.date.localeCompare(b.date)).forEach(s => {
         s.blocks.forEach(b => {
           if (b.type === 'exercise' && b.exercise_key === key && b.sets[0] && b.sets[0].done) {
             const val = ex.timeBased ? b.sets[0].reps : (ex.bodyweight ? b.sets[0].reps : b.sets[0].weight);
@@ -1546,4 +1549,3 @@ createApp({
 }).mount('#app');
 </script>
 </body>
-</html>

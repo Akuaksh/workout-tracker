@@ -1,6 +1,25 @@
 # Workout Tracker — CLAUDE.md
 
-## Project Overview
+## Two Apps, One Repo (Development)
+
+| App | User | Repo | Live URL | Local path |
+|---|---|---|---|---|
+| Akshika's | Akshika | `akuaksh/workout-tracker` | https://workout-tracker-cyan-six.vercel.app/ | `/home/user/workout-tracker/index.html` |
+| Prateek's | Prateek | `akuaksh/workout-tracker-prateek` | https://workout-tracker-prateek-mr5m.vercel.app/ | `/home/user/workout-tracker-prateek/index.html` |
+
+**Branch (Akshika's repo)**: `claude/develop`
+**Branch (Prateek's repo)**: `main`
+
+Both apps are Vue 3 via CDN, single `index.html`, localStorage only, deployed on Vercel.
+
+### Known session limitation
+The GitHub MCP is scoped to `akuaksh/workout-tracker` only. Pushing to Prateek's repo requires commit signing to be disabled locally (`git config commit.gpgsign false` in the prateek directory) — but the HTTPS proxy only works for the main repo. **Fix**: start a new Claude Code session with both repos in the MCP allowlist (Settings → Integrations → GitHub on claude.ai/code).
+
+---
+
+## Akshika's App
+
+### Overview
 Personal workout logging PWA for Akshika. Replaces WhatsApp self-messaging + Excel sheet workflow.
 Single-user, mobile-first, no backend, no auth required.
 
@@ -10,13 +29,14 @@ Single-user, mobile-first, no backend, no auth required.
 - **Charts**: Chart.js via CDN
 - **Design**: Apple Health-inspired dark theme, pure CSS, single `index.html`
 - **Deployment**: Vercel (static), GitHub repo: akuaksh/workout-tracker
-- **Branch**: `claude/workout-app-setup-1VSZK`
+- **Branch**: `claude/develop`
 - **Live**: https://workout-tracker-cyan-six.vercel.app/
 
 ## File Structure
 ```
-/index.html     — entire app (CSS + Vue HTML templates + JS, single file ~1530 lines)
-/CLAUDE.md      — this file
+/index.html          — Akshika's app (CSS + Vue HTML templates + JS, ~1640 lines)
+/prateek-index.html  — Prateek's app source copy (kept here for reference/editing)
+/CLAUDE.md           — this file
 ```
 
 ## User Profile
@@ -137,3 +157,66 @@ PLAN.days[dayKey].blocks = [
 - Nutrition tracking
 - Deload week scheduling
 - Workout templates beyond current plan
+
+---
+
+## Prateek's App
+
+### Overview
+Free-form workout tracker for Prateek. No fixed plan — user builds each session from scratch by picking exercises from a library.
+
+- **Repo**: `akuaksh/workout-tracker-prateek`
+- **Live**: https://workout-tracker-prateek-mr5m.vercel.app/
+- **Local**: `/home/user/workout-tracker-prateek/index.html`
+- **Source copy in this repo**: `/home/user/workout-tracker/prateek-index.html`
+- **localStorage prefix**: `wtp_` (separate from Akshika's `wt2_`)
+
+### Key differences from Akshika's app
+| Feature | Akshika | Prateek |
+|---|---|---|
+| Plan | Fixed 5-day cycle (Upper/Lower/Push/Pull/Legs) | None — fully free-form |
+| Session start | Pre-loaded exercises for the day | Builder: pick exercises, set sets/reps |
+| Week variant | A/B alternation | N/A |
+| Retro logging | Yes | No |
+| Stretching blocks | Yes | No |
+| Progression tracking | Anchor exercises only | All exercises with ≥2 sessions |
+| Exercise library | ~33 exercises | ~50 exercises (includes barbell compounds) |
+
+### Session Builder Flow
+1. Tap **"+ New Session"** on Home
+2. Type a session name (optional, e.g. "Push Day")
+3. Filter by muscle group → tap exercises to add (✓ = added, + = not added)
+4. Set sets × reps inline for each added exercise
+5. Tap **"Start Session"** → enters block-based session view
+
+### Data Model
+```js
+// Session (no dayKey/weekVariant/retro)
+{ id, date, created_at, completed_at, isPartial, inProgress, name, blocks[] }
+
+// Block types: 'exercise' | 'cardio'
+```
+
+### localStorage Keys
+| Key | Description |
+|---|---|
+| `wtp_exercises` | Exercise library (~50 exercises, seeded on first launch) |
+| `wtp_sessions` | All sessions |
+| `wtp_last_backup` | Last backup timestamp |
+
+### Screens
+| Screen | Purpose |
+|---|---|
+| `home` | Streak + PR callout. Resume partial. Start new session. Last session. Backup. |
+| `new-session` | Session builder: name + exercise picker with muscle group filter chips |
+| `session` | Block-based active session |
+| `history` | Reverse-chronological session list |
+| `session-detail` | Read-only past session view. Delete option. |
+| `reports` | Stats grid, heatmap, progression cards for all tracked exercises, muscle group coverage |
+| `exercise-detail` | Per-exercise top-set chart + recent sessions |
+| `library` | Filterable exercise list |
+
+### Backlog
+- Supabase cloud sync (shared project with Akshika, `user_id` field separates data)
+- Offline sync queue
+- Edit saved session sets retroactively

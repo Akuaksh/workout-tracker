@@ -1,0 +1,91 @@
+# Workout Tracker (Prateek) — CLAUDE.md
+
+## Overview
+Free-form workout tracker for Prateek. No fixed plan — user builds each session from scratch by picking exercises from a library.
+
+## Tech Stack
+- **Frontend**: Vue 3 via CDN (no build step, no npm)
+- **Storage**: localStorage (`wtp_` prefix)
+- **Charts**: Chart.js via CDN
+- **Design**: Apple Health-inspired dark theme, pure CSS, single `index.html`
+- **Deployment**: Vercel (static)
+- **Live**: https://workout-tracker-prateek-mr5m.vercel.app/
+
+## File Structure
+```
+/index.html   — entire app (CSS + Vue HTML templates + JS, ~1409 lines)
+/CLAUDE.md    — this file
+```
+
+## User Profile
+- **Prateek**, intermediate lifter
+- No fixed plan — chooses exercises freely each session
+- Tracks strength progression across all exercises
+
+## Key Differences from Akshika's App
+| Feature | Akshika | Prateek |
+|---|---|---|
+| Plan | Fixed 5-day cycle (Upper/Lower/Push/Pull/Legs) | None — fully free-form |
+| Session start | Pre-loaded exercises for the day | Builder: pick exercises, set sets/reps |
+| Week variant | A/B alternation | N/A |
+| Retro logging | Yes | No |
+| Stretching blocks | Yes | No |
+| Progression tracking | Anchor exercises only | All exercises with ≥2 sessions |
+| Exercise library | ~33 exercises | ~50 exercises (includes barbell compounds) |
+
+## Session Builder Flow
+1. Tap **"+ New Session"** on Home
+2. Type a session name (optional, e.g. "Push Day")
+3. Filter by muscle group → tap exercises to add (✓ = added, + = not added)
+4. Set sets × reps inline for each added exercise
+5. Tap **"Start Session"** → enters block-based session view
+
+## Data Model
+```js
+// Session (no dayKey/weekVariant/retro)
+{ id, date, created_at, completed_at, isPartial, inProgress, name, blocks[] }
+
+// Block types: 'exercise' | 'cardio'
+```
+
+## localStorage Keys
+| Key | Description |
+|---|---|
+| `wtp_exercises` | Exercise library (~50 exercises, seeded on first launch) |
+| `wtp_sessions` | All sessions |
+| `wtp_last_backup` | Last backup timestamp |
+
+## Screens
+| Screen | Purpose |
+|---|---|
+| `home` | Streak + PR callout. Resume partial. Start new session. Last session. Backup. |
+| `new-session` | Session builder: name + exercise picker with muscle group filter chips |
+| `session` | Block-based active session |
+| `history` | Reverse-chronological session list |
+| `session-detail` | Read-only past session view. Delete option. |
+| `reports` | Stats grid, heatmap, progression cards for all tracked exercises, muscle group coverage |
+| `exercise-detail` | Per-exercise top-set chart + recent sessions |
+| `library` | Filterable exercise list |
+
+## Key UX Decisions (Locked)
+1. **Session view**: sectioned scroll. Each block is a card. Active block fully visible, future blocks dimmed.
+2. **Set logging**: pre-filled weight from last session, tap Done to confirm. Auto-fills target reps if blank.
+3. **Skip exercise**: allowed, no reason required.
+4. **No rest timer**.
+5. **Streak break**: 3+ days without a session.
+6. **Progression chart**: first set weight per session. Flags points where reps < target.
+
+## Completion Definition
+- **Full** (🏆 + confetti): every exercise has ≥1 logged set AND every block is marked done
+- **Partial** (👏 + summary): otherwise
+- Both count toward streak/heatmap
+
+## Formulas
+- **Streak**: consecutive days with sessions, allows up to 2-day gaps
+- **Progression**: latest first-set weight vs first-ever first-set weight, for all exercises with ≥2 sessions
+- **Muscle group target volume** (sets/week): chest 9, back 12, shoulders 12, biceps 6, triceps 3, legs 14, glutes 17, core 9
+
+## Backlog
+- Supabase cloud sync
+- Offline sync queue
+- Edit saved session sets retroactively

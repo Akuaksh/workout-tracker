@@ -284,6 +284,17 @@
         </div>
       </div>
 
+      <!-- 3–13 day comeback banner -->
+      <div v-if="comebackMode" class="banner" style="border-color:rgba(48,209,88,0.4); background:rgba(48,209,88,0.08); margin-bottom:10px;">
+        <div class="banner-icon">🔄</div>
+        <div class="grow">
+          <strong>Welcome back!</strong><br>
+          <small class="muted">It's been a few days. Start with a Full Body Reactivation to ease back in before resuming your plan.</small>
+        </div>
+        <button class="btn-sm" @click="comebackMode=false">Skip</button>
+      </div>
+      <button v-if="comebackMode" class="btn btn-success mb12" @click="startComebackSession">Start Full Body Reactivation · ~45 min</button>
+
       <!-- 2-week gap banner -->
       <div v-if="resetBannerShown" class="banner">
         <div class="banner-icon">👋</div>
@@ -927,6 +938,31 @@ const PLAN = {
 };
 
 /* ========================================================================== */
+/*  COMEBACK DAY                                                             */
+/* ========================================================================== */
+const COMEBACK_DAY = {
+  key: 'comeback',
+  name: 'Full Body Reactivation',
+  estMin: 45,
+  blocks: [
+    { type: 'stretching' },
+    { type: 'cardio_warmup', minutes: 10, note: 'easy pace' },
+    { type: 'exercise', exercise_key: 'db_chest_press',    sets: 2, targetReps: 10 },
+    { type: 'exercise', exercise_key: 'lat_pulldown',      sets: 2, targetReps: 10 },
+    { type: 'exercise', exercise_key: 'db_shoulder_press', sets: 2, targetReps: 10 },
+    { type: 'exercise', exercise_key: 'goblet_squat',      sets: 2, targetReps: 12 },
+    { type: 'exercise', exercise_key: 'hip_thrust',        sets: 2, targetReps: 12 },
+    { type: 'exercise', exercise_key: 'db_curls',          sets: 2, targetReps: 12 },
+    { type: 'exercise', exercise_key: 'triceps_pushdown',  sets: 2, targetReps: 12 },
+    { type: 'finisher_core', rounds: 1, exercises: [
+      { key: 'plank', seconds: 30 },
+      { key: 'dead_bugs', reps: 10, note: ' /side' },
+      { key: 'bicycle_crunches', reps: 15 }
+    ]}
+  ]
+};
+
+/* ========================================================================== */
 /*  STORAGE                                                                  */
 /* ========================================================================== */
 const LS = {
@@ -968,6 +1004,7 @@ createApp({
     const activeSession = ref(null);
     const activeBlockIndex = ref(0);
     const partialSession = ref(null);
+    const comebackMode = ref(false);
 
     /* Retro state */
     const retroDate = ref(todayStr());
@@ -988,7 +1025,7 @@ createApp({
       const partial = sessions.value.find(s => s.isPartial && !s.completed_at && s.inProgress);
       if (partial) partialSession.value = partial;
 
-      // 2-week gap → reset
+      // Gap detection
       if (planState.lastSessionDate) {
         const daysSince = Math.floor((Date.now() - new Date(planState.lastSessionDate).getTime()) / 86400000);
         if (daysSince >= 14 && !resetBannerShown.value) {
@@ -997,6 +1034,8 @@ createApp({
           save(LS.planState, planState);
           resetBannerShown.value = true;
           save(LS.resetBanner, true);
+        } else if (daysSince >= 3 && daysSince < 14) {
+          comebackMode.value = true;
         }
       }
     });
@@ -1338,6 +1377,32 @@ createApp({
       screen.value = 'session';
     }
 
+    function startComebackSession() {
+      retroMode.value = false;
+      const blocks = COMEBACK_DAY.blocks.map(b => {
+        const block = { ...b, done: false };
+        if (b.type === 'exercise') {
+          const prefill = getPrefillWeight(b.exercise_key);
+          block.sets = Array.from({ length: b.sets }, () => ({ weight: prefill, prefillWeight: prefill, reps: null, done: false }));
+        } else if (b.type === 'finisher_core') {
+          block.exercises = b.exercises.map(e => ({ ...e }));
+        }
+        return block;
+      });
+      activeSession.value = {
+        id: uuid(), date: todayStr(), created_at: new Date().toISOString(),
+        completed_at: null, isPartial: false, inProgress: true,
+        dayKey: 'comeback', dayName: COMEBACK_DAY.name,
+        weekVariant: planState.weekVariant, retro: false, isComeback: true, blocks
+      };
+      activeBlockIndex.value = 0;
+      sessions.value.push(activeSession.value);
+      save(LS.sessions, sessions.value);
+      partialSession.value = null;
+      comebackMode.value = false;
+      screen.value = 'session';
+    }
+
     function startRetroSession() {
       retroMode.value = true;
       const session = buildSessionFromPlan(retroDayKey.value, retroWeek.value);
@@ -1457,12 +1522,17 @@ createApp({
       if (!s.retro) {
         planState.lastSessionDate = s.date;
         planState.lastCompletedDayKey = s.dayKey;
-        const idx = PLAN.cycle.indexOf(s.dayKey);
-        const nextIdx = (idx + 1) % PLAN.cycle.length;
-        planState.pointer = nextIdx;
-        // Flip A/B after completing full cycle (i.e., when returning to index 0)
-        if (nextIdx === 0) {
-          planState.weekVariant = planState.weekVariant === 'A' ? 'B' : 'A';
+        if (s.isComeback) {
+          // After comeback session, restart plan from Day 1, Week A
+          planState.pointer = 0;
+          planState.weekVariant = 'A';
+        } else {
+          const idx = PLAN.cycle.indexOf(s.dayKey);
+          const nextIdx = (idx + 1) % PLAN.cycle.length;
+          planState.pointer = nextIdx;
+          if (nextIdx === 0) {
+            planState.weekVariant = planState.weekVariant === 'A' ? 'B' : 'A';
+          }
         }
         save(LS.planState, planState);
       }

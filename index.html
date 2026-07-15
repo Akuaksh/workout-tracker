@@ -482,6 +482,26 @@
           </div>
         </template>
 
+        <!-- COOLDOWN -->
+        <template v-else-if="block.type==='cooldown'">
+          <div class="block-header">
+            <div class="block-type" style="color:var(--teal);">Cool-Down · Block {{ bi+1 }}</div>
+            <div class="block-name">🧊 Recovery Stretch</div>
+            <div class="block-sub">Hold each stretch, breathe slowly</div>
+          </div>
+          <div class="stretch-list">
+            <div class="stretch-group-title">Daily</div>
+            <div v-for="(s,i) in plan.stretching.cooldown.daily" :key="'cd'+i" class="stretch-item">{{ s }}</div>
+            <div class="stretch-group-title">{{ cooldownStretches.specificTitle }}</div>
+            <div v-for="(s,i) in cooldownStretches.specific" :key="'cs'+i" class="stretch-item">{{ s }}</div>
+          </div>
+          <div class="block-actions">
+            <button v-if="!block.done && bi === activeBlockIndex" class="block-action-btn" @click="skipBlock(bi)">Skip</button>
+            <button v-if="!block.done && bi === activeBlockIndex" class="block-action-btn primary" @click="markBlockDone(bi)">Done</button>
+            <button v-if="block.done" class="block-action-btn success" disabled>✓ Done</button>
+          </div>
+        </template>
+
         <!-- FINISHER CORE -->
         <template v-else-if="block.type==='finisher_core'">
           <div class="block-header">
@@ -867,7 +887,8 @@ const PLAN = {
       { type:'exercise', exercise_key:'one_hand_row', sets:3, targetReps:10, week:'B' },
       { type:'exercise', exercise_key:'lateral_raise', sets:3, targetReps:15 },
       { type:'exercise', exercise_key:'db_curls', sets:3, targetReps:12 },
-      { type:'cardio_warmup', minutes:10 }
+      { type:'cardio_warmup', minutes:10 },
+      { type:'cooldown' }
     ]},
     lower: { name:'Lower Strength', estMin:60, blocks:[
       { type:'stretching' },
@@ -877,7 +898,8 @@ const PLAN = {
       { type:'exercise', exercise_key:'goblet_squat', sets:3, targetReps:10, week:'A' },
       { type:'exercise', exercise_key:'walking_lunges', sets:3, targetReps:10, week:'B' },
       { type:'exercise', exercise_key:'calf_raise', sets:3, targetReps:15 },
-      { type:'cardio_warmup', minutes:10, note:'incline' }
+      { type:'cardio_warmup', minutes:10, note:'incline' },
+      { type:'cooldown' }
     ]},
     push: { name:'Push + Finisher', estMin:65, blocks:[
       { type:'stretching' },
@@ -896,7 +918,8 @@ const PLAN = {
         { key:'bicycle_crunches', reps:20 },
         { key:'hollow_hold', seconds:20 },
         { key:'leg_raises', reps:12 }
-      ]}
+      ]},
+      { type:'cooldown' }
     ]},
     pull: { name:'Pull + Finisher', estMin:65, blocks:[
       { type:'stretching' },
@@ -913,7 +936,8 @@ const PLAN = {
         { key:'side_plank', seconds:20, note:' /side' },
         { key:'mountain_climbers', seconds:30 }
       ]},
-      { type:'finisher_cardio', minutes:25, week:'B' }
+      { type:'finisher_cardio', minutes:25, week:'B' },
+      { type:'cooldown' }
     ]},
     legs: { name:'Legs + Glutes', estMin:65, blocks:[
       { type:'stretching' },
@@ -923,7 +947,8 @@ const PLAN = {
       { type:'exercise', exercise_key:'sumo_squat', sets:3, targetReps:12, week:'A' },
       { type:'exercise', exercise_key:'goblet_squat', sets:3, targetReps:12, week:'B' },
       { type:'exercise', exercise_key:'ham_curls', sets:3, targetReps:15 },
-      { type:'cardio_warmup', minutes:10 }
+      { type:'cardio_warmup', minutes:10 },
+      { type:'cooldown' }
     ]}
   },
   stretching: {
@@ -933,7 +958,31 @@ const PLAN = {
       "Hip Flexor Lunge — 30s/side"
     ],
     upper: ["PVC Shoulder Rotation — 10", "Band Pull-Aparts — 15"],
-    lower: ["Bodyweight Squat — 10", "Glute Bridge Activation — 15"]
+    lower: ["Bodyweight Squat — 10", "Glute Bridge Activation — 15"],
+    cooldown: {
+      daily: [
+        "Child's Pose — 45s",
+        "Cat-Cow — 10 slow reps",
+        "Seated Forward Fold — 45s"
+      ],
+      upper: [
+        "Cross-Body Shoulder Stretch — 30s/side",
+        "Chest Opener (hands clasped behind back) — 30s",
+        "Tricep Overhead Stretch — 30s/side",
+        "Neck Rolls — 30s"
+      ],
+      lower: [
+        "Standing Quad Stretch — 30s/side",
+        "Lying Hamstring Stretch — 45s/side",
+        "Pigeon Pose / Figure-4 Glute Stretch — 45s/side",
+        "Standing Calf Stretch — 30s/side"
+      ],
+      core: [
+        "Cobra Pose — 30s",
+        "Supine Twist — 30s/side",
+        "Hip Flexor Lunge Stretch — 30s/side"
+      ]
+    }
   }
 };
 
@@ -958,7 +1007,8 @@ const COMEBACK_DAY = {
       { key: 'plank', seconds: 30 },
       { key: 'dead_bugs', reps: 10, note: ' /side' },
       { key: 'bicycle_crunches', reps: 15 }
-    ]}
+    ]},
+    { type: 'cooldown' }
   ]
 };
 
@@ -1235,6 +1285,20 @@ createApp({
         title: isLower ? 'Lower body add-on' : 'Upper body add-on',
         items: isLower ? PLAN.stretching.lower : PLAN.stretching.upper
       };
+    });
+
+    /* ---------- COMPUTED: COOLDOWN DAY-SPECIFIC ---------- */
+    const cooldownStretches = computed(() => {
+      if (!activeSession.value) return { specific: [], specificTitle: '' };
+      const dk = activeSession.value.dayKey;
+      const isLower = dk === 'lower' || dk === 'legs';
+      const isUpper = dk === 'upper' || dk === 'push' || dk === 'pull';
+      const isComeback = dk === 'comeback';
+      let specific = [], specificTitle = '';
+      if (isLower) { specific = PLAN.stretching.cooldown.lower; specificTitle = 'Lower Body Release'; }
+      else if (isUpper) { specific = PLAN.stretching.cooldown.upper; specificTitle = 'Upper Body Release'; }
+      else if (isComeback) { specific = [...PLAN.stretching.cooldown.upper.slice(0,2), ...PLAN.stretching.cooldown.lower.slice(0,2)]; specificTitle = 'Full Body Release'; }
+      return { specific, specificTitle };
     });
 
     /* ---------- COMPUTED: DETAILS ---------- */
@@ -1732,7 +1796,7 @@ createApp({
       todayPlan, todayBlockCount, todayPreview, streak, lastSession, sessionsByDate,
       weekStats, monthStats, heatmap, heatmapTotal, anchorProgression, topCallout,
       muscleGroupCoverage, sessionProgressPct, allBlocksDone, sessionCanFinish,
-      stretchDaySpecific, detailSession, detailExercise, exerciseRecentSessions,
+      stretchDaySpecific, cooldownStretches, detailSession, detailExercise, exerciseRecentSessions,
       filteredLibrary, lastBackupLabel, backupOverdue,
       // helpers
       exerciseName, exerciseIsBodyweight, planDayName, groupLabel, relativeDate,

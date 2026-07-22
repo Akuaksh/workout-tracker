@@ -761,6 +761,8 @@
         <select class="modal-input" v-model="retroWeek">
           <option value="A">Week A</option>
           <option value="B">Week B</option>
+          <option value="C">Week C</option>
+          <option value="D">Week D</option>
         </select>
       </div>
       <button class="btn btn-primary mt12" @click="startRetroSession" :disabled="!retroDate || !retroDayKey">Start Logging</button>
@@ -840,6 +842,8 @@ const SEED_EXERCISES = [
   { key:'hip_thrust', name:'Hip Thrust', group:'glutes' },
   { key:'lateral_leg_lift', name:'Lateral Leg Lift', group:'glutes', bodyweight:true },
   { key:'kick_backs', name:'Kick Backs', group:'glutes', bodyweight:true },
+  { key:'hip_abduction', name:'Hip Abduction', group:'glutes' },
+  { key:'romanian_deadlift', name:'Romanian Deadlift', group:'legs' },
   { key:'calf_raise', name:'Calf Raise', group:'legs' },
   { key:'lunge_twist', name:'Lunge Twist', group:'legs', bodyweight:true },
   { key:'heel_raises', name:'Heel Raises', group:'legs', bodyweight:true },
@@ -897,6 +901,10 @@ const PLAN = {
       { type:'exercise', exercise_key:'back_extension', sets:3, targetReps:12, anchor:true },
       { type:'exercise', exercise_key:'goblet_squat', sets:3, targetReps:10, week:'A' },
       { type:'exercise', exercise_key:'walking_lunges', sets:3, targetReps:10, week:'B' },
+      { type:'exercise', exercise_key:'romanian_deadlift', sets:3, targetReps:10, week:'C' },
+      { type:'exercise', exercise_key:'leg_extensions', sets:3, targetReps:12, week:'C' },
+      { type:'exercise', exercise_key:'goblet_squat', sets:3, targetReps:10, week:'D' },
+      { type:'exercise', exercise_key:'hip_abduction', sets:3, targetReps:15, week:'D' },
       { type:'exercise', exercise_key:'calf_raise', sets:3, targetReps:15 },
       { type:'cardio_warmup', minutes:10, note:'incline' },
       { type:'cooldown' }
@@ -946,6 +954,10 @@ const PLAN = {
       { type:'exercise', exercise_key:'calf_raise', sets:3, targetReps:15, anchor:true },
       { type:'exercise', exercise_key:'sumo_squat', sets:3, targetReps:12, week:'A' },
       { type:'exercise', exercise_key:'goblet_squat', sets:3, targetReps:12, week:'B' },
+      { type:'exercise', exercise_key:'hip_abduction', sets:3, targetReps:15, week:'C' },
+      { type:'exercise', exercise_key:'romanian_deadlift', sets:3, targetReps:12, week:'D' },
+      { type:'exercise', exercise_key:'kick_backs', sets:3, targetReps:15, week:'C' },
+      { type:'exercise', exercise_key:'walking_lunges', sets:3, targetReps:12, week:'D' },
       { type:'exercise', exercise_key:'ham_curls', sets:3, targetReps:15 },
       { type:'cardio_warmup', minutes:10 },
       { type:'cooldown' }
@@ -1595,7 +1607,9 @@ createApp({
           const nextIdx = (idx + 1) % PLAN.cycle.length;
           planState.pointer = nextIdx;
           if (nextIdx === 0) {
-            planState.weekVariant = planState.weekVariant === 'A' ? 'B' : 'A';
+            const variants = ['A','B','C','D'];
+            const vi = variants.indexOf(planState.weekVariant);
+            planState.weekVariant = variants[(vi + 1) % variants.length];
           }
         }
         save(LS.planState, planState);

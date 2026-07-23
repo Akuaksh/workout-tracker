@@ -846,6 +846,7 @@ const SEED_EXERCISES = [
   { key:'leg_extensions', name:'Leg Extensions', group:'legs' },
   { key:'ham_curls', name:'Ham Curls', group:'legs' },
   { key:'hip_thrust', name:'Hip Thrust', group:'glutes' },
+  { key:'glute_bridge', name:'Glute Bridge', group:'glutes', bodyweight:true },
   { key:'lateral_leg_lift', name:'Lateral Leg Lift', group:'glutes', bodyweight:true },
   { key:'kick_backs', name:'Kick Backs', group:'glutes', bodyweight:true },
   { key:'hip_abduction', name:'Hip Abduction', group:'glutes' },
@@ -908,6 +909,7 @@ const PLAN = {
       { type:'stretching' },
       { type:'exercise', exercise_key:'leg_press', sets:3, targetReps:10, anchor:true },
       { type:'exercise', exercise_key:'hip_thrust', sets:3, targetReps:12, anchor:true },
+      { type:'exercise', exercise_key:'glute_bridge', sets:3, targetReps:15 },
       { type:'exercise', exercise_key:'back_extension', sets:3, targetReps:12, anchor:true },
       { type:'exercise', exercise_key:'goblet_squat', sets:3, targetReps:10, week:'A' },
       { type:'exercise', exercise_key:'walking_lunges', sets:3, targetReps:10, week:'B' },
@@ -970,6 +972,7 @@ const PLAN = {
     legs: { name:'Legs + Glutes', estMin:65, blocks:[
       { type:'stretching' },
       { type:'exercise', exercise_key:'hip_thrust', sets:3, targetReps:15, anchor:true },
+      { type:'exercise', exercise_key:'glute_bridge', sets:3, targetReps:15 },
       { type:'exercise', exercise_key:'leg_press', sets:3, targetReps:15, anchor:true },
       { type:'exercise', exercise_key:'calf_raise', sets:3, targetReps:15, anchor:true },
       { type:'exercise', exercise_key:'sumo_squat', sets:3, targetReps:12, week:'A' },

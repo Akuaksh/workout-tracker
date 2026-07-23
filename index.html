@@ -61,6 +61,7 @@
     .btn-sm { padding:7px 14px; border-radius:8px; font-size:14px; font-weight:500; border:none; cursor:pointer; background:var(--card2); color:var(--text); }
     .btn-sm-blue { background:rgba(10,132,255,0.15); color:var(--blue); }
     .btn-sm-orange { background:rgba(255,149,0,0.15); color:var(--orange); }
+    .btn-text-sm { display:block; width:100%; padding:8px; background:none; border:none; cursor:pointer; color:var(--muted); font-size:14px; text-align:center; }
     .btn-sm-red { background:rgba(255,69,58,0.15); color:var(--red); }
 
     /* Hero / streak card */
@@ -316,8 +317,11 @@
             <span>{{ b.label }}</span>
           </div>
         </div>
-        <button class="btn btn-primary" @click="startSession()">Start Session</button>
-        <button v-if="partialSession" class="btn btn-secondary mt8" @click="resumeSession()">Resume Partial Session</button>
+        <template v-if="partialSession">
+          <button class="btn btn-primary" @click="resumeSession()">↩ Resume Session</button>
+          <button class="btn-text-sm mt8" @click="discardAndStartFresh()">Start Fresh (discard partial)</button>
+        </template>
+        <button v-else class="btn btn-primary" @click="startSession()">Start Session</button>
       </div>
 
       <!-- Last session -->
@@ -1476,6 +1480,20 @@ createApp({
       screen.value = 'session';
     }
 
+    function discardAndStartFresh() {
+      // Mark the abandoned partial as discarded so it doesn't pollute history
+      const idx = sessions.value.findIndex(s => s.id === partialSession.value.id);
+      if (idx !== -1) {
+        sessions.value[idx].isPartial = false;
+        sessions.value[idx].inProgress = false;
+        sessions.value[idx].discarded = true;
+        sessions.value[idx].completed_at = new Date().toISOString();
+        save(LS.sessions, sessions.value);
+      }
+      partialSession.value = null;
+      startSession();
+    }
+
     function startComebackSession() {
       retroMode.value = false;
       const blocks = COMEBACK_DAY.blocks.map(b => {
@@ -1839,7 +1857,7 @@ createApp({
       exerciseName, exerciseIsBodyweight, planDayName, groupLabel, relativeDate,
       dayOf, monthOf, countLoggedExercises, historyExerciseSummary, blockHasAnyLoggedSet,
       // actions
-      navigate, goBack, startSession, resumeSession, startComebackSession, startRetroSession,
+      navigate, goBack, startSession, resumeSession, discardAndStartFresh, startComebackSession, startRetroSession,
       logSet, addSet, removeSet, markBlockDone, editBlock, skipBlock, cancelOrPauseSession,
       finishSession, dismissCelebration, confettiStyle, deleteDetailSession,
       dismissResetBanner, exportData, triggerImport, importData,

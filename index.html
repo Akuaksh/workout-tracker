@@ -248,6 +248,62 @@
     /* Exercise chart container */
     .chart-wrap { background:var(--card); border-radius:14px; padding:14px; height:220px; position:relative; }
 
+    /* ---- Cycle / phase ---- */
+    .phase-card { border-radius:18px; padding:16px; margin-bottom:12px; background:var(--card); position:relative; overflow:hidden; }
+    .phase-card::after { content:''; position:absolute; right:-40px; top:-40px; width:150px; height:150px; border-radius:50%; opacity:0.14; background:currentColor; pointer-events:none; }
+    .phase-top { display:flex; align-items:center; gap:12px; }
+    .phase-emoji { font-size:32px; line-height:1; }
+    .phase-title { flex:1; }
+    .phase-name { font-size:19px; font-weight:700; letter-spacing:-0.2px; }
+    .phase-day { font-size:13px; color:var(--text2); margin-top:1px; }
+    .phase-headline { font-size:14px; font-weight:600; margin-top:12px; }
+    .phase-note { font-size:13px; color:var(--text2); line-height:1.5; margin-top:5px; }
+    .phase-tips { margin-top:12px; padding-top:12px; border-top:1px solid var(--border); }
+    .phase-tip { display:flex; gap:8px; font-size:13px; color:var(--text); padding:3px 0; align-items:flex-start; }
+    .phase-tip::before { content:'•'; color:var(--text3); }
+
+    .phase-bar { display:flex; gap:2px; margin-top:14px; height:8px; border-radius:4px; overflow:hidden; }
+    .phase-seg { flex-grow:1; background:var(--card3); opacity:0.45; }
+    .phase-seg.active { opacity:1; }
+    .phase-scale { display:flex; justify-content:space-between; font-size:10px; color:var(--text3); margin-top:5px; }
+
+    .phase-chip { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:600; background:var(--card2); }
+
+    .mini-banner { border-radius:12px; padding:11px 13px; font-size:13px; display:flex; gap:9px; align-items:flex-start; margin-bottom:10px; line-height:1.45; }
+    .mini-banner .mb-icon { font-size:16px; flex-shrink:0; }
+    .mini-banner strong { display:block; font-size:13px; margin-bottom:1px; }
+
+    .quick-row { display:flex; gap:10px; margin-top:12px; }
+    .quick-btn { flex:1; background:var(--card); border:none; border-radius:14px; padding:14px 10px; color:var(--text); cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:5px; font-size:13px; font-weight:500; }
+    .quick-btn:active { background:var(--card2); }
+    .quick-btn-icon { font-size:20px; line-height:1; }
+
+    .seg-control { display:flex; gap:6px; margin-bottom:10px; }
+    .seg-control button { flex:1; padding:9px; border:none; border-radius:10px; background:var(--card2); color:var(--text); font-size:13px; font-weight:500; cursor:pointer; }
+    .seg-control button.active { background:var(--orange); color:#fff; font-weight:600; }
+
+    .toggle { width:50px; height:30px; border-radius:15px; background:var(--card3); border:none; position:relative; cursor:pointer; flex-shrink:0; transition:background 0.2s; }
+    .toggle.on { background:var(--green); }
+    .toggle::after { content:''; position:absolute; top:3px; left:3px; width:24px; height:24px; border-radius:50%; background:#fff; transition:transform 0.2s; }
+    .toggle.on::after { transform:translateX(20px); }
+
+    .stepper { display:flex; align-items:center; gap:10px; }
+    .stepper button { width:32px; height:32px; border-radius:8px; border:none; background:var(--card2); color:var(--text); font-size:18px; cursor:pointer; line-height:1; }
+    .stepper .val { min-width:52px; text-align:center; font-size:15px; font-weight:600; }
+
+    .heatmap-cell.sick { background:rgba(255,69,58,0.55); }
+    .heatmap-cell.period { box-shadow:inset 0 0 0 1.5px var(--pink); }
+    .heatmap-cell.predicted { box-shadow:inset 0 0 0 1.5px rgba(255,55,95,0.35); }
+
+    .tag { display:inline-block; font-size:10px; font-weight:600; padding:2px 6px; border-radius:5px; margin-left:6px; text-transform:uppercase; letter-spacing:0.3px; }
+    .tag-sick { background:rgba(255,69,58,0.18); color:var(--red); }
+    .tag-period { background:rgba(255,55,95,0.18); color:var(--pink); }
+    .tag-phase { background:var(--card2); color:var(--text2); }
+
+    .symptom-chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+    .symptom-chip { padding:7px 12px; border-radius:16px; background:var(--card2); color:var(--text); font-size:13px; border:none; cursor:pointer; }
+    .symptom-chip.on { background:rgba(255,55,95,0.2); color:var(--pink); font-weight:600; }
+
     /* Misc utilities */
     .muted { color:var(--text2); }
     .center { text-align:center; }
@@ -285,6 +341,42 @@
         </div>
       </div>
 
+      <!-- Cycle phase summary -->
+      <div v-if="currentPhase" class="phase-card card-tap" :style="{color: currentPhase.color}" @click="navigate('cycle')">
+        <div class="phase-top">
+          <div class="phase-emoji">{{ currentPhase.emoji }}</div>
+          <div class="phase-title">
+            <div class="phase-name" style="color:var(--text);">{{ currentPhase.label }} Phase</div>
+            <div class="phase-day">Day {{ currentPhase.dayOfCycle }} · {{ nextPeriodLabel }}</div>
+          </div>
+          <div class="chevron">›</div>
+        </div>
+        <div class="phase-headline" style="color:var(--text);">{{ currentPhase.headline }}</div>
+        <div class="phase-bar">
+          <div v-for="seg in phaseTimeline" :key="seg.key" class="phase-seg"
+               :class="{active: seg.key === currentPhase.key}"
+               :style="{flexGrow: seg.days, background: seg.color}"></div>
+        </div>
+      </div>
+
+      <!-- Sick today -->
+      <div v-if="sickToday" class="mini-banner" style="background:rgba(255,69,58,0.1); border:1px solid rgba(255,69,58,0.3);">
+        <div class="mb-icon">🤒</div>
+        <div class="grow">
+          <strong>Marked sick today</strong>
+          <span class="muted">Your streak and plan are protected. Rest up — training can wait.</span>
+        </div>
+      </div>
+
+      <!-- Returning from illness -->
+      <div v-if="recoveryMode && !sickToday" class="mini-banner" style="background:rgba(255,149,0,0.1); border:1px solid rgba(255,149,0,0.3);">
+        <div class="mb-icon">💛</div>
+        <div class="grow">
+          <strong>Easing back in</strong>
+          <span class="muted">{{ recentSickDays }} sick day{{ recentSickDays > 1 ? 's' : '' }} logged recently — today's session is auto-deloaded to ~85% load with a set trimmed off accessories.</span>
+        </div>
+      </div>
+
       <!-- 3–13 day comeback banner -->
       <div v-if="comebackMode" class="banner" style="border-color:rgba(48,209,88,0.4); background:rgba(48,209,88,0.08); margin-bottom:10px;">
         <div class="banner-icon">🔄</div>
@@ -311,6 +403,13 @@
         <div class="today-label">Next Session · Week {{ planState.weekVariant }}</div>
         <div class="today-title">{{ todayPlan.name }}</div>
         <div class="today-sub">{{ todayBlockCount.exercises }} exercises · ~{{ todayPlan.estMin }} min</div>
+        <div v-if="activeAdjustments.reasons.length" class="mini-banner" style="background:var(--card2); margin-bottom:12px;">
+          <div class="mb-icon">{{ activeAdjustments.icon }}</div>
+          <div class="grow">
+            <strong>Adapted for you</strong>
+            <span class="muted">{{ activeAdjustments.summary }}</span>
+          </div>
+        </div>
         <div class="today-ex-list">
           <div v-for="(b,i) in todayPreview" :key="i" class="today-ex-list-item" :class="{anchor:b.anchor}">
             <span class="dot"></span>
@@ -336,7 +435,20 @@
         </div>
       </div>
 
-      <button class="btn btn-secondary mt12" @click="navigate('retro')">+ Log Past Session</button>
+      <div class="quick-row">
+        <button class="quick-btn" @click="navigate('cycle')">
+          <span class="quick-btn-icon">🩸</span>
+          {{ periodActive ? 'Period · Day ' + currentPeriodDay : 'Log Period' }}
+        </button>
+        <button class="quick-btn" @click="navigate('wellness')">
+          <span class="quick-btn-icon">🤒</span>
+          {{ sickToday ? 'Sick Today' : 'Log Sick Day' }}
+        </button>
+        <button class="quick-btn" @click="navigate('retro')">
+          <span class="quick-btn-icon">🕗</span>
+          Past Session
+        </button>
+      </div>
 
       <!-- Backup overdue banner (Option A) -->
       <div v-if="backupOverdue" class="banner" style="border-color:rgba(255,149,0,0.4); background:rgba(255,149,0,0.08); margin-top:14px;">
@@ -382,6 +494,16 @@
     </div>
 
     <div style="padding-top:8px;">
+
+      <div v-if="activeSession.adjustments && activeSession.adjustments.reasons.length" class="mini-banner"
+           style="background:var(--card); margin:0 16px 12px;">
+        <div class="mb-icon">{{ activeSession.adjustments.icon }}</div>
+        <div class="grow">
+          <strong>{{ activeSession.adjustments.title }}</strong>
+          <span class="muted">{{ activeSession.adjustments.summary }}</span>
+        </div>
+      </div>
+
       <div v-for="(block,bi) in activeSession.blocks" :key="bi" class="block" :class="{done:block.done, upcoming:!block.done && bi !== activeBlockIndex}">
 
         <!-- STRETCHING -->
@@ -434,7 +556,10 @@
           <div class="block-header">
             <div class="block-type" :class="{anchor:block.anchor}">{{ block.anchor ? '⚓ Anchor · Block ' + (bi+1) : 'Block ' + (bi+1) }}</div>
             <div class="block-name">{{ exerciseName(block.exercise_key) }}</div>
-            <div class="block-sub">Target: {{ block.sets.length }} × {{ block.targetReps ? block.targetReps + ' reps' : block.targetSeconds + 's' }}</div>
+            <div class="block-sub">
+              Target: {{ block.sets.length }} × {{ block.targetReps ? block.targetReps + ' reps' : block.targetSeconds + 's' }}
+              <span v-if="block.adjustedLabel" :style="{color:'var(--purple)'}"> · {{ block.adjustedLabel }}</span>
+            </div>
           </div>
           <div class="block-body">
             <div v-for="(s,si) in block.sets" :key="si" class="set-row" :class="{logged:s.done}">
@@ -551,7 +676,7 @@
             <div class="mo">{{ monthOf(s.date) }}</div>
           </div>
           <div class="history-info">
-            <div class="history-title">{{ planDayName(s.dayKey) }} · Week {{ s.weekVariant }}<span v-if="s.isPartial" class="badge badge-partial">Partial</span></div>
+            <div class="history-title">{{ planDayName(s.dayKey) }} · Week {{ s.weekVariant }}<span v-if="s.isPartial" class="badge badge-partial">Partial</span><span v-if="s.phase" class="tag tag-phase">{{ phaseEmoji(s.phase.key) }} {{ s.phase.label }}</span></div>
             <div class="history-sub">{{ historyExerciseSummary(s) }}</div>
           </div>
           <div class="chevron">›</div>
@@ -569,6 +694,13 @@
     </div>
     <div v-if="detailSession" class="content">
       <div class="section-label">{{ relativeDate(detailSession.date) }} · Week {{ detailSession.weekVariant }}</div>
+      <div v-if="detailSession.adjustments && detailSession.adjustments.reasons.length" class="mini-banner" style="background:var(--card);">
+        <div class="mb-icon">{{ detailSession.adjustments.icon }}</div>
+        <div class="grow">
+          <strong>{{ detailSession.adjustments.title }}</strong>
+          <span class="muted">{{ detailSession.adjustments.summary }}</span>
+        </div>
+      </div>
       <div v-for="(block,bi) in detailSession.blocks" :key="bi" class="card">
         <template v-if="block.type==='exercise'">
           <div class="row">
@@ -643,7 +775,8 @@
         <div style="font-size:13px; color:var(--text2); margin-bottom:8px;">{{ heatmapTotal }} sessions · last 6 months</div>
         <div class="heatmap-scroll">
           <div class="heatmap">
-            <div v-for="(cell,i) in heatmap" :key="i" class="heatmap-cell" :class="'l' + cell.level"></div>
+            <div v-for="(cell,i) in heatmap" :key="i" class="heatmap-cell"
+                 :class="['l' + cell.level, {sick: cell.sick, period: cell.period}]"></div>
           </div>
         </div>
         <div class="heatmap-legend">
@@ -653,6 +786,40 @@
           <div class="heatmap-cell l2" style="width:10px; height:10px;"></div>
           <div class="heatmap-cell l3" style="width:10px; height:10px;"></div>
           More
+          <span style="margin-left:10px;"></span>
+          <div class="heatmap-cell period" style="width:10px; height:10px;"></div> Period
+          <div class="heatmap-cell sick" style="width:10px; height:10px; margin-left:6px;"></div> Off
+        </div>
+      </div>
+
+      <div v-if="phaseStats.length" class="section-label">Training by Cycle Phase</div>
+      <div v-if="phaseStats.length" class="card">
+        <div v-for="p in phaseStats" :key="p.key" class="row">
+          <div class="row-label">
+            <span class="phase-chip" :style="{color:p.color}">{{ p.emoji }} <span style="color:var(--text);">{{ p.label }}</span></span>
+          </div>
+          <div class="row-detail">
+            <span :style="{color: p.sessions ? 'var(--text)' : 'var(--text2)'}">{{ p.sessions }} session{{ p.sessions === 1 ? '' : 's' }}</span>
+            <span v-if="p.avgVolume" class="muted"> · {{ p.avgVolume }} kg avg</span>
+          </div>
+        </div>
+      </div>
+      <p v-if="phaseStats.length" class="muted small mt8" style="padding:0 4px; line-height:1.5;">
+        Volume per phase tells you whether the adaptation is matching how you actually feel — adjust the
+        multipliers on the Cycle tab if a phase is consistently too easy or too hard.
+      </p>
+
+      <div class="section-label">Recovery</div>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">Off Days</div>
+          <div class="stat-value" style="color:var(--red);">{{ wellnessStats.monthCount }}</div>
+          <div class="stat-sub">this month</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Longest Streak</div>
+          <div class="stat-value">{{ wellnessStats.longestStreak }}</div>
+          <div class="stat-sub">sessions in a row</div>
         </div>
       </div>
 
@@ -774,6 +941,229 @@
     </div>
   </div>
 
+  <!-- ========= CYCLE ========= -->
+  <div v-if="screen==='cycle'" class="screen">
+    <div class="screen-header"><h1>Cycle</h1></div>
+    <div class="content">
+
+      <!-- Not set up yet -->
+      <div v-if="!cycle.periods.length" class="card card-pad mb12">
+        <div style="font-size:17px; font-weight:600; margin-bottom:6px;">Track your cycle</div>
+        <div class="muted small" style="line-height:1.5;">
+          Log the first day of your period and the app learns your cycle length, projects upcoming periods,
+          and adapts each session's load and volume to the phase you're in.
+        </div>
+      </div>
+
+      <!-- Current phase -->
+      <div v-if="currentPhase" class="phase-card" :style="{color: currentPhase.color}">
+        <div class="phase-top">
+          <div class="phase-emoji">{{ currentPhase.emoji }}</div>
+          <div class="phase-title">
+            <div class="phase-name" style="color:var(--text);">{{ currentPhase.label }}</div>
+            <div class="phase-day">Day {{ currentPhase.dayOfCycle }} of ~{{ cycleLength }} · {{ nextPeriodLabel }}</div>
+          </div>
+        </div>
+        <div class="phase-bar">
+          <div v-for="seg in phaseTimeline" :key="seg.key" class="phase-seg"
+               :class="{active: seg.key === currentPhase.key}"
+               :style="{flexGrow: seg.days, background: seg.color}"></div>
+        </div>
+        <div class="phase-scale">
+          <span>Day 1</span><span>Day {{ cycleLength }}</span>
+        </div>
+        <div class="phase-headline" style="color:var(--text);">{{ currentPhase.headline }}</div>
+        <div class="phase-note">{{ currentPhase.note }}</div>
+        <div class="phase-tips">
+          <div v-for="(t,i) in currentPhase.tips" :key="i" class="phase-tip">{{ t }}</div>
+        </div>
+      </div>
+
+      <!-- Log is too old to infer a phase from -->
+      <div v-if="cycleDataStale" class="mini-banner" style="background:rgba(255,149,0,0.1); border:1px solid rgba(255,149,0,0.3);">
+        <div class="mb-icon">📆</div>
+        <div class="grow">
+          <strong>Phase unknown</strong>
+          <span class="muted">Your last logged period is more than a cycle old, so workouts are running unadapted. Log your latest period to resync.</span>
+        </div>
+      </div>
+
+      <!-- Log actions -->
+      <div class="section-label">Log</div>
+      <div v-if="!periodActive">
+        <button class="btn btn-primary" @click="logPeriodStart(todayStr)">🩸 Period started today</button>
+      </div>
+      <div v-else>
+        <div class="card card-pad mb12">
+          <div style="font-weight:600;">Period in progress · day {{ currentPeriodDay }}</div>
+          <div class="row-detail mt8">Started {{ relativeDate(cycle.periods[cycle.periods.length-1].start) }}</div>
+        </div>
+        <button class="btn btn-success" @click="logPeriodEnd(todayStr)">✓ Period ended today</button>
+      </div>
+
+      <button class="btn btn-secondary mt8" @click="showPeriodForm = !showPeriodForm">
+        {{ showPeriodForm ? 'Cancel' : '+ Log for another date' }}
+      </button>
+
+      <div v-if="showPeriodForm" class="card card-pad mt12">
+        <div class="section-label" style="padding-top:0;">Start date</div>
+        <input type="date" class="modal-input input-date" v-model="newPeriodStart" :max="todayStr">
+        <div class="section-label">End date (optional)</div>
+        <input type="date" class="modal-input input-date" v-model="newPeriodEnd" :max="todayStr">
+        <div class="section-label">Flow</div>
+        <div class="seg-control">
+          <button v-for="f in ['light','medium','heavy']" :key="f"
+                  :class="{active: newPeriodFlow === f}" @click="newPeriodFlow = f">
+            {{ f.charAt(0).toUpperCase() + f.slice(1) }}
+          </button>
+        </div>
+        <div class="section-label">Symptoms</div>
+        <div class="symptom-chips">
+          <button v-for="s in symptomOptions" :key="s" class="symptom-chip"
+                  :class="{on: newPeriodSymptoms.includes(s)}" @click="toggleSymptom(s)">{{ s }}</button>
+        </div>
+        <button class="btn btn-primary mt8" @click="savePeriodEntry" :disabled="!newPeriodStart">Save Entry</button>
+      </div>
+
+      <!-- Projections -->
+      <div v-if="projectedPeriods.length" class="section-label">Projected</div>
+      <div v-if="projectedPeriods.length" class="card">
+        <div v-for="(p,i) in projectedPeriods" :key="i" class="row">
+          <div class="row-label">{{ p.label }}</div>
+          <div class="row-detail" :style="{color: p.overdue ? 'var(--orange)' : ''}">{{ p.dateLabel }} · {{ p.whenLabel }}</div>
+        </div>
+        <div v-if="ovulationEstimate" class="row">
+          <div class="row-label">⚡ Next peak-strength window</div>
+          <div class="row-detail">{{ ovulationEstimate }}</div>
+        </div>
+      </div>
+      <p v-if="projectedPeriods.length" class="muted small mt8" style="padding:0 4px; line-height:1.5;">
+        Estimates from your logged history — they shift as you log more. Not a medical or contraceptive tool.
+      </p>
+
+      <!-- Adaptation settings -->
+      <div class="section-label">Training Adaptation</div>
+      <div class="card">
+        <div class="row">
+          <div class="grow">
+            <div style="font-weight:600;">Adapt workouts to phase</div>
+            <div class="row-detail">Adjusts load, sets and cardio per phase</div>
+          </div>
+          <button class="toggle" :class="{on: cycle.adaptWorkouts}" @click="toggleCycleSetting('adaptWorkouts')"></button>
+        </div>
+        <div class="row">
+          <div class="grow">
+            <div style="font-weight:600;">Protect streak on period days</div>
+            <div class="row-detail">Rest during your period won't break the streak</div>
+          </div>
+          <button class="toggle" :class="{on: cycle.protectPeriodDays}" @click="toggleCycleSetting('protectPeriodDays')"></button>
+        </div>
+        <div class="row">
+          <div class="grow">
+            <div style="font-weight:600;">Cycle length</div>
+            <div class="row-detail">{{ cycle.periods.length >= 2 ? 'Learned: ' + learnedCycleLength + ' days' : 'Set manually until 2+ periods logged' }}</div>
+          </div>
+          <div class="stepper">
+            <button @click="adjustSetting('manualCycleLength',-1,21,40)">−</button>
+            <span class="val">{{ cycle.manualCycleLength }}d</span>
+            <button @click="adjustSetting('manualCycleLength',1,21,40)">+</button>
+          </div>
+        </div>
+        <div class="row">
+          <div class="grow">
+            <div style="font-weight:600;">Period length</div>
+            <div class="row-detail">{{ cycle.periods.filter(p=>p.end).length ? 'Learned: ' + learnedPeriodLength + ' days' : 'Set manually' }}</div>
+          </div>
+          <div class="stepper">
+            <button @click="adjustSetting('manualPeriodLength',-1,2,10)">−</button>
+            <span class="val">{{ cycle.manualPeriodLength }}d</span>
+            <button @click="adjustSetting('manualPeriodLength',1,2,10)">+</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phase override -->
+      <div v-if="currentPhase" class="section-label">Feeling different today?</div>
+      <div v-if="currentPhase" class="card card-pad">
+        <select class="modal-input" style="margin-bottom:0;" :value="phaseOverrideKey" @change="setPhaseOverride($event.target.value)">
+          <option value="">Use calculated phase ({{ calculatedPhaseLabel }})</option>
+          <option v-for="p in phaseList" :key="p.key" :value="p.key">Treat today as {{ p.label }}</option>
+        </select>
+        <p class="muted small mt8" style="line-height:1.5;">
+          Overrides today's adaptation only. Use it when your body disagrees with the calendar.
+        </p>
+      </div>
+
+      <!-- History -->
+      <div v-if="cycle.periods.length" class="section-label">Period History</div>
+      <div v-if="cycle.periods.length" class="card">
+        <div v-for="p in periodHistory" :key="p.id" class="row">
+          <div class="grow">
+            <div style="font-weight:600;">{{ p.rangeLabel }}</div>
+            <div class="row-detail">
+              {{ p.lengthLabel }}<span v-if="p.cycleGap"> · {{ p.cycleGap }}-day cycle</span><span v-if="p.flow"> · {{ p.flow }} flow</span>
+            </div>
+            <div v-if="p.symptoms && p.symptoms.length" class="row-detail" style="margin-top:2px;">{{ p.symptoms.join(', ') }}</div>
+          </div>
+          <button class="btn-sm btn-sm-red" @click="deletePeriod(p.id)">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========= WELLNESS / SICK DAYS ========= -->
+  <div v-if="screen==='wellness'" class="screen">
+    <div class="screen-header-nav">
+      <button class="back-btn" @click="goBack">‹ Back</button>
+      <h2>Off Days</h2>
+      <div style="min-width:60px;"></div>
+    </div>
+    <div class="content">
+
+      <div v-if="!sickToday">
+        <button class="btn btn-primary" @click="logSickToday">🤒 I'm sick today</button>
+      </div>
+      <div v-else class="card card-pad mb12" style="border:1px solid rgba(255,69,58,0.3);">
+        <div style="font-weight:600;">Marked sick today</div>
+        <div class="row-detail mt8">Streak protected. Your plan won't advance or reset.</div>
+        <button class="btn-sm btn-sm-red mt12" @click="removeWellness(sickToday.id)">Remove</button>
+      </div>
+
+      <div class="section-label">Log a Range</div>
+      <div class="card card-pad">
+        <div class="seg-control">
+          <button v-for="t in wellnessTypes" :key="t.key" :class="{active: newWellnessType === t.key}"
+                  @click="newWellnessType = t.key">{{ t.emoji }} {{ t.label }}</button>
+        </div>
+        <div class="section-label" style="padding-top:4px;">From</div>
+        <input type="date" class="modal-input input-date" v-model="newWellnessStart" :max="todayStr">
+        <div class="section-label">To (leave same for a single day)</div>
+        <input type="date" class="modal-input input-date" v-model="newWellnessEnd" :max="todayStr">
+        <div class="section-label">Note (optional)</div>
+        <input type="text" class="modal-input" v-model="newWellnessNote" placeholder="e.g. flu, back strain">
+        <button class="btn btn-primary mt8" @click="saveWellnessRange" :disabled="!newWellnessStart">Save</button>
+      </div>
+
+      <div class="section-label">How off days work</div>
+      <div class="card card-pad muted small" style="line-height:1.6;">
+        Logged off days pause the clock: they don't count against your streak, they don't trigger the
+        two-week plan reset, and your next session is automatically deloaded after two or more sick days.
+      </div>
+
+      <div class="section-label">Logged Days</div>
+      <div v-if="!wellnessGrouped.length" class="card card-pad muted small">Nothing logged. That's a good sign.</div>
+      <div v-else class="card">
+        <div v-for="g in wellnessGrouped" :key="g.id" class="row">
+          <div class="grow">
+            <div style="font-weight:600;">{{ g.emoji }} {{ g.rangeLabel }}</div>
+            <div class="row-detail">{{ g.days }} day{{ g.days > 1 ? 's' : '' }} · {{ g.typeLabel }}<span v-if="g.note"> · {{ g.note }}</span></div>
+          </div>
+          <button class="btn-sm btn-sm-red" @click="removeWellnessGroup(g)">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ========= CELEBRATION OVERLAY ========= -->
   <div v-if="showCelebration" class="celebrate" @click="dismissCelebration">
     <div v-for="n in 24" :key="n" class="confetti-piece" :style="confettiStyle(n)"></div>
@@ -791,12 +1181,15 @@
   </div>
 
   <!-- ========= BOTTOM NAV ========= -->
-  <nav v-if="['home','history','reports','library'].includes(screen)" class="bottom-nav">
+  <nav v-if="['home','history','cycle','reports','library'].includes(screen)" class="bottom-nav">
     <button class="nav-tab" :class="{active: screen==='home'}" @click="navigate('home')">
       <div class="nav-tab-icon">🏠</div>Home
     </button>
     <button class="nav-tab" :class="{active: screen==='history'}" @click="navigate('history')">
       <div class="nav-tab-icon">📋</div>History
+    </button>
+    <button class="nav-tab" :class="{active: screen==='cycle'}" @click="navigate('cycle')">
+      <div class="nav-tab-icon">🌙</div>Cycle
     </button>
     <button class="nav-tab" :class="{active: screen==='reports' || screen==='exercise-detail'}" @click="navigate('reports')">
       <div class="nav-tab-icon">📊</div>Reports
@@ -1052,6 +1445,64 @@ const COMEBACK_DAY = {
 };
 
 /* ========================================================================== */
+/*  CYCLE PHASES                                                             */
+/*  adjust: loadMult      → multiplier on prefilled working weight           */
+/*          anchorSetDelta / accessorySetDelta → sets added or removed       */
+/*          repMult       → multiplier on target reps                        */
+/*          easyCardio    → downgrade heavy cardio finishers                 */
+/*          coreRoundDelta→ rounds added or removed from core circuits       */
+/* ========================================================================== */
+const CYCLE_PHASES = {
+  menstrual: {
+    key:'menstrual', label:'Menstrual', emoji:'🩸', color:'#ff453a',
+    headline:'Low-load days — move gently',
+    note:'Energy, iron and joint stability tend to sit at their lowest. Lighter weights, fewer sets and easy cardio. Movement often eases cramps, but skipping entirely is a legitimate choice.',
+    tips:['~10% off your working weights','One less set on accessories','Keep cardio easy and low-impact','Prioritise sleep, water and iron-rich food'],
+    adjust:{ loadMult:0.90, anchorSetDelta:0, accessorySetDelta:-1, repMult:1, easyCardio:true, coreRoundDelta:-1 }
+  },
+  follicular: {
+    key:'follicular', label:'Follicular', emoji:'🌱', color:'#30d158',
+    headline:'Build days — add volume',
+    note:'Rising estrogen lifts work capacity and recovery. This is your best window to add reps, add sets, and learn new movements.',
+    tips:['Chase the top of each rep range','Run the plan exactly as written','Good time to try a new exercise','Push conditioning harder'],
+    adjust:{ loadMult:1, anchorSetDelta:0, accessorySetDelta:0, repMult:1, easyCardio:false, coreRoundDelta:0 }
+  },
+  ovulatory: {
+    key:'ovulatory', label:'Ovulatory', emoji:'⚡', color:'#ffd60a',
+    headline:'Peak days — go heavy',
+    note:'Strength peaks around ovulation, so this is your PR window. Ligament laxity is also higher, so warm up thoroughly and keep knee-dominant work strict.',
+    tips:['~5% onto your anchor lifts','One extra set on anchors','Lower reps, heavier load','Strict form on squats and lunges'],
+    adjust:{ loadMult:1.05, anchorSetDelta:1, accessorySetDelta:0, repMult:0.85, easyCardio:false, coreRoundDelta:0 }
+  },
+  early_luteal: {
+    key:'early_luteal', label:'Early Luteal', emoji:'🌙', color:'#bf5af2',
+    headline:'Steady days — hold the line',
+    note:'Progesterone climbs. Strength holds up well, but heat tolerance drops and recovery between sets slows a little. Same plan, longer rests.',
+    tips:['Run the plan as written','Rest 90–120s between anchor sets','Extra water and salt if you sweat hard','Watch for higher perceived effort'],
+    adjust:{ loadMult:1, anchorSetDelta:0, accessorySetDelta:0, repMult:1, easyCardio:false, coreRoundDelta:0 }
+  },
+  late_luteal: {
+    key:'late_luteal', label:'Late Luteal', emoji:'🌧', color:'#64d2ff',
+    headline:'Deload days — lower the bar',
+    note:'The PMS window: lower energy, worse sleep and higher perceived effort at the same weight. Keep the movements, trim the load and volume so you still finish.',
+    tips:['~5% off your working weights','One less accessory set','Swap heavy cardio for a steady incline walk','Give the cool-down real time'],
+    adjust:{ loadMult:0.95, anchorSetDelta:0, accessorySetDelta:-1, repMult:1, easyCardio:true, coreRoundDelta:0 }
+  }
+};
+const PHASE_ORDER = ['menstrual','follicular','ovulatory','early_luteal','late_luteal'];
+
+/* Applied to the first session back after illness */
+const RECOVERY_ADJUST = { loadMult:0.85, anchorSetDelta:0, accessorySetDelta:-1, repMult:1, easyCardio:true, coreRoundDelta:-1 };
+
+const WELLNESS_TYPES = [
+  { key:'sick',   label:'Sick',   emoji:'🤒' },
+  { key:'injury', label:'Injury', emoji:'🩹' },
+  { key:'rest',   label:'Rest',   emoji:'😴' }
+];
+
+const SYMPTOM_OPTIONS = ['Cramps','Fatigue','Headache','Bloating','Back pain','Low mood','Cravings','Poor sleep'];
+
+/* ========================================================================== */
 /*  STORAGE                                                                  */
 /* ========================================================================== */
 const LS = {
@@ -1059,13 +1510,20 @@ const LS = {
   sessions: 'wt2_sessions',
   planState: 'wt2_plan_state',
   resetBanner: 'wt2_reset_banner',
-  lastBackup: 'wt2_last_backup'
+  lastBackup: 'wt2_last_backup',
+  cycle: 'wt2_cycle',
+  wellness: 'wt2_wellness'
 };
 const load = (k, def) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch { return def; } };
 const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
 const uuid = () => 'x' + Math.random().toString(36).slice(2,11) + Date.now().toString(36);
 const localDateStr = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const todayStr = () => localDateStr(new Date());
+/* Parse 'YYYY-MM-DD' as a local date — `new Date(str)` would read it as UTC and shift the day. */
+const parseDate = (ds) => { const [y,m,d] = String(ds).split('-').map(Number); return new Date(y, m-1, d); };
+const daysBetween = (a, b) => Math.round((parseDate(b) - parseDate(a)) / 86400000);
+const addDays = (ds, n) => { const d = parseDate(ds); d.setDate(d.getDate() + n); return localDateStr(d); };
+const roundLoad = (v) => (v == null || v === '' || isNaN(v)) ? null : Math.max(0, Math.round(v * 2) / 2);
 
 /* ========================================================================== */
 /*  APP                                                                      */
@@ -1089,6 +1547,29 @@ createApp({
     const planState = reactive(load(LS.planState, { pointer:0, weekVariant:'A', lastSessionDate:null, lastCompletedDayKey:null }));
     const resetBannerShown = ref(load(LS.resetBanner, false));
     const lastBackupDate = ref(load(LS.lastBackup, null));
+
+    /* Cycle + wellness */
+    const cycle = reactive(Object.assign({
+      periods: [],              // [{id, start, end|null, flow, symptoms:[]}]
+      adaptWorkouts: true,
+      protectPeriodDays: true,
+      manualCycleLength: 28,
+      manualPeriodLength: 5,
+      overrideKey: null,
+      overrideDate: null
+    }, load(LS.cycle, {})));
+    const wellness = ref(load(LS.wellness, []));  // [{id, date, type, note}]
+
+    const showPeriodForm = ref(false);
+    const newPeriodStart = ref(todayStr());
+    const newPeriodEnd = ref('');
+    const newPeriodFlow = ref('medium');
+    const newPeriodSymptoms = ref([]);
+
+    const newWellnessType = ref('sick');
+    const newWellnessStart = ref(todayStr());
+    const newWellnessEnd = ref(todayStr());
+    const newWellnessNote = ref('');
 
     const activeSession = ref(null);
     const activeBlockIndex = ref(0);
@@ -1114,20 +1595,487 @@ createApp({
       const partial = sessions.value.find(s => s.isPartial && !s.completed_at && s.inProgress);
       if (partial) partialSession.value = partial;
 
-      // Gap detection
+      // Gap detection — logged off days and period days don't count against the gap.
       if (planState.lastSessionDate) {
-        const daysSince = Math.floor((Date.now() - new Date(planState.lastSessionDate).getTime()) / 86400000);
+        const daysSince = effectiveGap(planState.lastSessionDate, today.value);
         if (daysSince >= 14 && !resetBannerShown.value) {
           planState.pointer = 0;
           planState.weekVariant = 'A';
           save(LS.planState, planState);
           resetBannerShown.value = true;
           save(LS.resetBanner, true);
-        } else if (daysSince >= 3 && daysSince < 14) {
+        } else if (daysSince >= 3 && daysSince < 14 && !sickToday.value) {
           comebackMode.value = true;
         }
       }
     });
+
+    /* ====================================================================== */
+    /*  CYCLE TRACKING                                                       */
+    /* ====================================================================== */
+    const today = ref(todayStr());
+    const saveCycle = () => save(LS.cycle, JSON.parse(JSON.stringify(cycle)));
+    const saveWellness = () => save(LS.wellness, wellness.value);
+
+    function fmtDate(ds) {
+      return parseDate(ds).toLocaleDateString('en-US', { day:'numeric', month:'short' });
+    }
+
+    const sortedPeriods = computed(() => [...cycle.periods].sort((a,b) => a.start.localeCompare(b.start)));
+
+    /* Average of the last 6 plausible start-to-start gaps. */
+    const learnedCycleLength = computed(() => {
+      const p = sortedPeriods.value;
+      if (p.length < 2) return null;
+      const gaps = [];
+      for (let i = 1; i < p.length; i++) {
+        const g = daysBetween(p[i-1].start, p[i].start);
+        if (g >= 18 && g <= 45) gaps.push(g);
+      }
+      if (!gaps.length) return null;
+      const recent = gaps.slice(-6);
+      return Math.round(recent.reduce((a,b) => a+b, 0) / recent.length);
+    });
+    const cycleLength = computed(() => learnedCycleLength.value || cycle.manualCycleLength || 28);
+
+    const learnedPeriodLength = computed(() => {
+      const withEnd = sortedPeriods.value.filter(p => p.end);
+      if (!withEnd.length) return null;
+      const lens = withEnd.slice(-6).map(p => daysBetween(p.start, p.end) + 1).filter(n => n >= 1 && n <= 12);
+      if (!lens.length) return null;
+      return Math.round(lens.reduce((a,b) => a+b, 0) / lens.length);
+    });
+    const periodLength = computed(() => learnedPeriodLength.value || cycle.manualPeriodLength || 5);
+
+    /* Ovulation is anchored ~14 days BEFORE the next period, so phases scale
+       with cycle length rather than assuming a fixed 28-day calendar. */
+    function phaseKeyForDay(day, cLen, pLen) {
+      if (day <= pLen) return 'menstrual';
+      const ovulation = cLen - 14;
+      if (day <= ovulation - 2) return 'follicular';
+      if (day <= ovulation + 2) return 'ovulatory';
+      if (day <= cLen - 5) return 'early_luteal';
+      return 'late_luteal';
+    }
+
+    function lastPeriodStartOnOrBefore(ds) {
+      const before = sortedPeriods.value.filter(p => p.start <= ds);
+      return before.length ? before[before.length - 1].start : null;
+    }
+
+    function phaseFor(ds) {
+      if (!sortedPeriods.value.length) return null;
+      const start = lastPeriodStartOnOrBefore(ds);
+      if (!start) return null;
+      const day = daysBetween(start, ds) + 1;
+      // Well past the expected next period means the log is stale — say nothing rather than guess.
+      if (day > cycleLength.value + 10) return null;
+      const key = phaseKeyForDay(day, cycleLength.value, periodLength.value);
+      return { ...CYCLE_PHASES[key], dayOfCycle: day, cycleLength: cycleLength.value };
+    }
+
+    const calculatedPhase = computed(() => phaseFor(today.value));
+    const calculatedPhaseLabel = computed(() => calculatedPhase.value ? calculatedPhase.value.label : 'none yet');
+    const phaseOverrideKey = computed(() =>
+      (cycle.overrideDate === today.value && cycle.overrideKey) ? cycle.overrideKey : ''
+    );
+    const currentPhase = computed(() => {
+      const calc = calculatedPhase.value;
+      if (phaseOverrideKey.value) {
+        return {
+          ...CYCLE_PHASES[phaseOverrideKey.value],
+          dayOfCycle: calc ? calc.dayOfCycle : 0,
+          cycleLength: cycleLength.value,
+          overridden: true
+        };
+      }
+      return calc;
+    });
+
+    const phaseTimeline = computed(() => {
+      const cLen = cycleLength.value, pLen = periodLength.value;
+      const counts = {};
+      PHASE_ORDER.forEach(k => counts[k] = 0);
+      for (let d = 1; d <= cLen; d++) counts[phaseKeyForDay(d, cLen, pLen)]++;
+      return PHASE_ORDER.filter(k => counts[k] > 0).map(k => ({
+        key: k, days: counts[k], color: CYCLE_PHASES[k].color, label: CYCLE_PHASES[k].label
+      }));
+    });
+
+    const periodActive = computed(() => {
+      const p = sortedPeriods.value[sortedPeriods.value.length - 1];
+      if (!p || p.end) return false;
+      return daysBetween(p.start, today.value) <= 10;
+    });
+    const currentPeriodDay = computed(() => {
+      const p = sortedPeriods.value[sortedPeriods.value.length - 1];
+      return p ? daysBetween(p.start, today.value) + 1 : 0;
+    });
+
+    /* One cycle on from the last logged start — deliberately NOT rolled forward
+       past today, so an overdue period reads as overdue instead of silently
+       projecting a cycle you never logged. */
+    const nextPeriodStart = computed(() => {
+      const last = lastPeriodStartOnOrBefore(today.value);
+      return last ? addDays(last, cycleLength.value) : null;
+    });
+    const periodOverdueDays = computed(() => {
+      if (!nextPeriodStart.value || periodActive.value) return 0;
+      const n = daysBetween(nextPeriodStart.value, today.value);
+      return n > 0 ? n : 0;
+    });
+    const cycleDataStale = computed(() => cycle.periods.length > 0 && !calculatedPhase.value);
+    const nextPeriodLabel = computed(() => {
+      if (periodActive.value) return 'Period day ' + currentPeriodDay.value;
+      if (!nextPeriodStart.value) return 'Log a period to project';
+      if (periodOverdueDays.value > 0) return 'Period ' + periodOverdueDays.value + ' day' + (periodOverdueDays.value > 1 ? 's' : '') + ' overdue';
+      const n = daysBetween(today.value, nextPeriodStart.value);
+      if (n === 0) return 'Period expected today';
+      if (n === 1) return 'Next period tomorrow';
+      return 'Next period in ' + n + ' days';
+    });
+    const projectedPeriods = computed(() => {
+      if (!nextPeriodStart.value) return [];
+      const labels = ['Next period', 'In 2 cycles', 'In 3 cycles'];
+      return labels.map((label, i) => {
+        const ds = addDays(nextPeriodStart.value, cycleLength.value * i);
+        const inDays = daysBetween(today.value, ds);
+        return {
+          label, dateLabel: fmtDate(ds), inDays: Math.abs(inDays),
+          overdue: inDays < 0,
+          whenLabel: inDays < 0 ? Math.abs(inDays) + ' days ago' : inDays === 0 ? 'today' : 'in ' + inDays + ' days'
+        };
+      });
+    });
+    const ovulationEstimate = computed(() => {
+      if (!nextPeriodStart.value) return null;
+      const s = addDays(nextPeriodStart.value, -16);
+      const e = addDays(nextPeriodStart.value, -12);
+      if (e < today.value) return null;
+      return fmtDate(s) + ' – ' + fmtDate(e);
+    });
+
+    const periodDates = computed(() => {
+      const set = new Set();
+      sortedPeriods.value.forEach(p => {
+        const end = p.end || addDays(p.start, periodLength.value - 1);
+        let d = p.start, guard = 0;
+        while (d <= end && guard++ < 15) { set.add(d); d = addDays(d, 1); }
+      });
+      return set;
+    });
+
+    const periodHistory = computed(() => {
+      const p = sortedPeriods.value;
+      return p.map((entry, i) => {
+        const len = entry.end ? daysBetween(entry.start, entry.end) + 1 : null;
+        const gap = i > 0 ? daysBetween(p[i-1].start, entry.start) : null;
+        return {
+          id: entry.id, flow: entry.flow, symptoms: entry.symptoms || [],
+          rangeLabel: entry.end ? fmtDate(entry.start) + ' – ' + fmtDate(entry.end) : fmtDate(entry.start) + ' – ongoing',
+          lengthLabel: len ? len + ' day' + (len > 1 ? 's' : '') : 'in progress',
+          cycleGap: gap
+        };
+      }).reverse();
+    });
+
+    /* ---------- CYCLE ACTIONS ---------- */
+    function logPeriodStart(ds) {
+      if (cycle.periods.some(p => p.start === ds)) return;
+      // Close any still-open previous period the day before this one starts.
+      const open = sortedPeriods.value.filter(p => !p.end && p.start < ds).pop();
+      if (open) {
+        const target = cycle.periods.find(p => p.id === open.id);
+        target.end = addDays(ds, -1);
+      }
+      cycle.periods.push({ id: uuid(), start: ds, end: null, flow: 'medium', symptoms: [] });
+      saveCycle();
+    }
+    function logPeriodEnd(ds) {
+      const p = sortedPeriods.value[sortedPeriods.value.length - 1];
+      if (!p || p.end) return;
+      const target = cycle.periods.find(x => x.id === p.id);
+      target.end = ds < target.start ? target.start : ds;
+      saveCycle();
+    }
+    function savePeriodEntry() {
+      if (!newPeriodStart.value) return;
+      const start = newPeriodStart.value;
+      let end = newPeriodEnd.value || null;
+      if (end && end < start) end = null;
+      const existing = cycle.periods.find(p => p.start === start);
+      if (existing) {
+        existing.end = end;
+        existing.flow = newPeriodFlow.value;
+        existing.symptoms = [...newPeriodSymptoms.value];
+      } else {
+        cycle.periods.push({
+          id: uuid(), start, end,
+          flow: newPeriodFlow.value,
+          symptoms: [...newPeriodSymptoms.value]
+        });
+      }
+      saveCycle();
+      showPeriodForm.value = false;
+      newPeriodStart.value = today.value;
+      newPeriodEnd.value = '';
+      newPeriodFlow.value = 'medium';
+      newPeriodSymptoms.value = [];
+    }
+    function deletePeriod(id) {
+      if (!confirm('Delete this period entry?')) return;
+      cycle.periods = cycle.periods.filter(p => p.id !== id);
+      saveCycle();
+    }
+    function toggleSymptom(s) {
+      const i = newPeriodSymptoms.value.indexOf(s);
+      if (i === -1) newPeriodSymptoms.value.push(s);
+      else newPeriodSymptoms.value.splice(i, 1);
+    }
+    function toggleCycleSetting(key) { cycle[key] = !cycle[key]; saveCycle(); }
+    function adjustSetting(key, delta, min, max) {
+      cycle[key] = Math.min(max, Math.max(min, (cycle[key] || min) + delta));
+      saveCycle();
+    }
+    function setPhaseOverride(key) {
+      cycle.overrideKey = key || null;
+      cycle.overrideDate = key ? today.value : null;
+      saveCycle();
+    }
+    function phaseEmoji(key) { return CYCLE_PHASES[key] ? CYCLE_PHASES[key].emoji : '•'; }
+
+    /* ====================================================================== */
+    /*  WELLNESS / OFF DAYS                                                  */
+    /* ====================================================================== */
+    const wellnessDates = computed(() => new Set(wellness.value.map(w => w.date)));
+
+    /* Days that shouldn't count against a streak or trigger a plan reset. */
+    const protectedDates = computed(() => {
+      const s = new Set(wellnessDates.value);
+      if (cycle.protectPeriodDays) periodDates.value.forEach(d => s.add(d));
+      return s;
+    });
+
+    /* Raw day difference minus any protected days in between. */
+    function effectiveGap(fromDs, toDs) {
+      const raw = daysBetween(fromDs, toDs);
+      if (raw <= 0) return 0;
+      let skipped = 0;
+      for (let i = 1; i < raw; i++) {
+        if (protectedDates.value.has(addDays(fromDs, i))) skipped++;
+      }
+      return raw - skipped;
+    }
+
+    const sickToday = computed(() => wellness.value.find(w => w.date === today.value && w.type !== 'rest') || null);
+    const recentSickDays = computed(() => {
+      const cutoff = addDays(today.value, -6);
+      return wellness.value.filter(w => w.type !== 'rest' && w.date >= cutoff && w.date <= today.value).length;
+    });
+    const lastSickDate = computed(() => {
+      const d = wellness.value.filter(w => w.type !== 'rest').map(w => w.date).sort();
+      return d.length ? d[d.length - 1] : null;
+    });
+    const recoveryMode = computed(() => {
+      if (sickToday.value || recentSickDays.value < 2) return false;
+      const ls = lastSickDate.value;
+      if (!ls) return false;
+      const trainedSince = sessions.value.some(s => !s.inProgress && !s.discarded && s.date > ls);
+      return !trainedSince;
+    });
+
+    const wellnessGrouped = computed(() => {
+      const sorted = [...wellness.value].sort((a,b) => a.date.localeCompare(b.date));
+      const groups = [];
+      sorted.forEach(w => {
+        const last = groups[groups.length - 1];
+        if (last && last.type === w.type && last.note === (w.note || '') && daysBetween(last.end, w.date) === 1) {
+          last.end = w.date; last.ids.push(w.id); last.days++;
+        } else {
+          groups.push({ type: w.type, note: w.note || '', start: w.date, end: w.date, ids: [w.id], days: 1 });
+        }
+      });
+      return groups.reverse().map(g => {
+        const t = WELLNESS_TYPES.find(x => x.key === g.type) || WELLNESS_TYPES[0];
+        return {
+          ...g, id: g.ids[0], emoji: t.emoji, typeLabel: t.label,
+          rangeLabel: g.start === g.end ? fmtDate(g.start) : fmtDate(g.start) + ' – ' + fmtDate(g.end)
+        };
+      });
+    });
+
+    const wellnessStats = computed(() => {
+      const now = new Date();
+      const monthStart = localDateStr(new Date(now.getFullYear(), now.getMonth(), 1));
+      const monthCount = wellness.value.filter(w => w.date >= monthStart).length;
+      const dates = [...new Set(sessions.value.filter(s => !s.inProgress && !s.discarded).map(s => s.date))].sort();
+      let best = 0, run = 0, prev = null;
+      dates.forEach(d => {
+        run = (prev === null || effectiveGap(prev, d) <= 3) ? run + 1 : 1;
+        if (run > best) best = run;
+        prev = d;
+      });
+      return { monthCount, longestStreak: best };
+    });
+
+    function sessionVolume(s) {
+      return s.blocks.reduce((sum, b) => b.type !== 'exercise' ? sum :
+        sum + b.sets.filter(x => x.done && x.weight != null)
+                    .reduce((v, x) => v + (x.weight * (x.reps || 0)), 0), 0);
+    }
+
+    /* How much work actually gets done in each phase — the feedback loop for
+       whether the adaptation multipliers are set right. */
+    const phaseStats = computed(() => {
+      const done = sessions.value.filter(s => !s.inProgress && !s.discarded && s.phase && s.phase.key);
+      if (!done.length) return [];
+      return PHASE_ORDER.map(k => {
+        const list = done.filter(s => s.phase.key === k);
+        const vols = list.map(sessionVolume).filter(v => v > 0);
+        return {
+          key: k,
+          label: CYCLE_PHASES[k].label,
+          emoji: CYCLE_PHASES[k].emoji,
+          color: CYCLE_PHASES[k].color,
+          sessions: list.length,
+          avgVolume: vols.length ? Math.round(vols.reduce((a,b) => a+b, 0) / vols.length) : null
+        };
+      });
+    });
+
+    function logSickToday() { addWellnessDay(today.value, 'sick', ''); }
+    function addWellnessDay(ds, type, note) {
+      const existing = wellness.value.find(w => w.date === ds);
+      if (existing) { existing.type = type; existing.note = note; }
+      else wellness.value.push({ id: uuid(), date: ds, type, note });
+      saveWellness();
+    }
+    function saveWellnessRange() {
+      const start = newWellnessStart.value;
+      let end = newWellnessEnd.value || start;
+      if (end < start) end = start;
+      if (daysBetween(start, end) > 60) { alert('That range is longer than 60 days. Please split it up.'); return; }
+      let d = start, guard = 0;
+      while (d <= end && guard++ < 61) {
+        addWellnessDay(d, newWellnessType.value, newWellnessNote.value.trim());
+        d = addDays(d, 1);
+      }
+      newWellnessNote.value = '';
+      newWellnessStart.value = today.value;
+      newWellnessEnd.value = today.value;
+    }
+    function removeWellness(id) {
+      wellness.value = wellness.value.filter(w => w.id !== id);
+      saveWellness();
+    }
+    function removeWellnessGroup(g) {
+      if (!confirm('Delete these ' + g.days + ' day(s)?')) return;
+      const ids = new Set(g.ids);
+      wellness.value = wellness.value.filter(w => !ids.has(w.id));
+      saveWellness();
+    }
+
+    /* ====================================================================== */
+    /*  ADAPTATION ENGINE                                                    */
+    /* ====================================================================== */
+    function describeAdjustments(a) {
+      const parts = [];
+      if (a.loadMult !== 1) parts.push((a.loadMult > 1 ? '+' : '') + Math.round((a.loadMult - 1) * 100) + '% load');
+      if (a.anchorSetDelta) parts.push((a.anchorSetDelta > 0 ? '+' : '') + a.anchorSetDelta + ' set on anchors');
+      if (a.accessorySetDelta) parts.push((a.accessorySetDelta > 0 ? '+' : '') + a.accessorySetDelta + ' set on accessories');
+      if (a.repMult < 1) parts.push('lower rep targets');
+      if (a.repMult > 1) parts.push('higher rep targets');
+      if (a.easyCardio) parts.push('easier cardio finisher');
+      if (a.coreRoundDelta) parts.push((a.coreRoundDelta > 0 ? '+' : '') + a.coreRoundDelta + ' core round');
+      if (!parts.length) return 'Running the plan exactly as written.';
+      return parts.join(' · ') + '.';
+    }
+
+    function adjustmentsFor(ds) {
+      const out = {
+        loadMult: 1, anchorSetDelta: 0, accessorySetDelta: 0, repMult: 1,
+        easyCardio: false, coreRoundDelta: 0,
+        reasons: [], icon: '⚙️', title: 'Plan as written', summary: '', phase: null
+      };
+      const apply = (a) => {
+        out.loadMult *= a.loadMult;
+        out.anchorSetDelta += a.anchorSetDelta;
+        out.accessorySetDelta += a.accessorySetDelta;
+        out.repMult *= a.repMult;
+        out.easyCardio = out.easyCardio || a.easyCardio;
+        out.coreRoundDelta += a.coreRoundDelta;
+      };
+      const isToday = ds === today.value;
+      const ph = isToday ? currentPhase.value : phaseFor(ds);
+      if (ph) {
+        out.phase = { key: ph.key, label: ph.label, dayOfCycle: ph.dayOfCycle };
+        if (cycle.adaptWorkouts) {
+          const a = ph.adjust;
+          const changesAnything = a.loadMult !== 1 || a.anchorSetDelta || a.accessorySetDelta ||
+                                  a.repMult !== 1 || a.easyCardio || a.coreRoundDelta;
+          if (changesAnything) {
+            apply(a);
+            out.reasons.push(ph.label + ' phase');
+            out.icon = ph.emoji;
+          }
+        }
+      }
+      /* Recovery clamps rather than multiplies: being unwell should never inherit a
+         phase's "add a set, go heavier" instruction. Take the gentler of the two on
+         every axis, and keep normal rep targets at the reduced load. */
+      if (isToday && (recoveryMode.value || sickToday.value)) {
+        const r = RECOVERY_ADJUST;
+        out.loadMult = Math.min(out.loadMult, r.loadMult);
+        out.anchorSetDelta = Math.min(out.anchorSetDelta, r.anchorSetDelta);
+        out.accessorySetDelta = Math.min(out.accessorySetDelta, r.accessorySetDelta);
+        out.repMult = 1;
+        out.easyCardio = true;
+        out.coreRoundDelta = Math.min(out.coreRoundDelta, r.coreRoundDelta);
+        out.reasons.unshift(sickToday.value ? 'unwell today' : 'returning from illness');
+        out.icon = sickToday.value ? '🤒' : '💛';
+      }
+      out.loadMult = Math.round(out.loadMult * 100) / 100;
+      out.summary = describeAdjustments(out);
+      out.title = out.reasons.length ? 'Adapted · ' + out.reasons.join(' + ') : 'Plan as written';
+      return out;
+    }
+
+    const activeAdjustments = computed(() => adjustmentsFor(today.value));
+
+    /* Rewrites one planned block in place according to the adjustments.
+       `hasLoad` says whether there's a previous weight to scale — without one,
+       a load percentage would be meaningless noise. */
+    function applyAdjustmentsToBlock(block, planBlock, adj, hasLoad) {
+      if (planBlock.type === 'exercise') {
+        const delta = planBlock.anchor ? adj.anchorSetDelta : adj.accessorySetDelta;
+        const setCount = Math.max(1, planBlock.sets + delta);
+        const labels = [];
+        if (delta) labels.push((delta > 0 ? '+' : '') + delta + ' set');
+        if (planBlock.targetReps && adj.repMult !== 1) {
+          block.targetReps = Math.max(1, Math.round(planBlock.targetReps * adj.repMult));
+          if (block.targetReps !== planBlock.targetReps) {
+            labels.push(planBlock.targetReps + '→' + block.targetReps + ' reps');
+          }
+        }
+        if (adj.loadMult !== 1 && hasLoad) {
+          const pct = Math.round((adj.loadMult - 1) * 100);
+          labels.push((pct > 0 ? '+' : '') + pct + '% load');
+        }
+        block.adjustedLabel = labels.length ? labels.join(' · ') : null;
+        return setCount;
+      }
+      if (planBlock.type === 'finisher_cardio' && adj.easyCardio) {
+        block.minutes = Math.max(10, Math.round(planBlock.minutes * 0.6));
+        block.note = 'easy pace';
+      }
+      if (planBlock.type === 'cardio_warmup' && adj.easyCardio) {
+        block.note = planBlock.note ? planBlock.note + ', easy pace' : 'easy pace';
+      }
+      if (planBlock.type === 'finisher_core' && adj.coreRoundDelta) {
+        block.rounds = Math.max(1, planBlock.rounds + adj.coreRoundDelta);
+      }
+      return null;
+    }
 
     /* ---------- COMPUTED: PLAN HELPERS ---------- */
     const todayPlan = computed(() => {
@@ -1150,30 +2098,19 @@ createApp({
     });
 
     /* ---------- COMPUTED: STREAK ---------- */
+    /* Sessions in a row, allowing normal rest gaps. Logged off days and (optionally)
+       period days are subtracted from a gap before it's judged, so being ill or on
+       your period doesn't cost you the streak. */
     const streak = computed(() => {
-      if (!sessions.value.length) return 0;
-      const dates = new Set(sessions.value.filter(s => !s.inProgress).map(s => s.date));
-      if (!dates.size) return 0;
-      // Count consecutive days backwards from today (or yesterday if no session today)
-      let count = 0;
-      let d = new Date();
-      if (!dates.has(d.toISOString().slice(0,10))) d.setDate(d.getDate() - 1);
-      // Allow up to 2 day gaps between sessions (rest days)
-      let lastDate = null;
-      const sorted = [...dates].sort().reverse();
-      for (const ds of sorted) {
-        const dt = new Date(ds);
-        if (lastDate === null) {
-          const gap = Math.floor((Date.now() - dt.getTime()) / 86400000);
-          if (gap > 2) break;
-          count = 1;
-          lastDate = dt;
-        } else {
-          const gap = Math.floor((lastDate.getTime() - dt.getTime()) / 86400000);
-          if (gap > 3) break;
-          count++;
-          lastDate = dt;
-        }
+      const dates = [...new Set(
+        sessions.value.filter(s => !s.inProgress && !s.discarded).map(s => s.date)
+      )].sort().reverse();
+      if (!dates.length) return 0;
+      if (effectiveGap(dates[0], today.value) > 2) return 0;
+      let count = 1;
+      for (let i = 1; i < dates.length; i++) {
+        if (effectiveGap(dates[i], dates[i-1]) > 3) break;
+        count++;
       }
       return count;
     });
@@ -1218,7 +2155,12 @@ createApp({
         const d = new Date(start); d.setDate(start.getDate() + i);
         const ds = localDateStr(d);
         const c = sessionsByDay[ds] || 0;
-        cells.push({ date: ds, level: c >= 2 ? 3 : c === 1 ? 2 : 0 });
+        cells.push({
+          date: ds,
+          level: c >= 2 ? 3 : c === 1 ? 2 : 0,
+          sick: c === 0 && wellnessDates.value.has(ds),
+          period: periodDates.value.has(ds)
+        });
       }
       return cells;
     });
@@ -1429,26 +2371,37 @@ createApp({
     }
 
     /* ---------- SESSION START ---------- */
-    function buildSessionFromPlan(dayKey, week) {
-      const day = PLAN.days[dayKey];
-      const blocks = day.blocks.filter(b => !b.week || b.week === week).map(b => {
-        const block = { ...b, done:false };
+    /* Turns a plan definition into a live session, applying cycle-phase and
+       recovery adjustments for the date it's being trained on. */
+    function buildBlocks(planBlocks, adj) {
+      return planBlocks.map(b => {
+        const block = { ...b, done: false };
         if (b.type === 'exercise') {
-          const prefill = getPrefillWeight(b.exercise_key);
-          block.sets = Array.from({ length: b.sets }, () => ({
+          const basePrefill = getPrefillWeight(b.exercise_key);
+          const setCount = applyAdjustmentsToBlock(block, b, adj, basePrefill != null);
+          const prefill = adj.loadMult !== 1 ? roundLoad(basePrefill == null ? null : basePrefill * adj.loadMult) : basePrefill;
+          block.sets = Array.from({ length: setCount }, () => ({
             weight: prefill,
             prefillWeight: prefill,
             reps: null,
             done: false
           }));
-        } else if (b.type === 'finisher_core') {
-          block.exercises = b.exercises.map(e => ({ ...e }));
+        } else {
+          applyAdjustmentsToBlock(block, b, adj);
+          if (b.type === 'finisher_core') block.exercises = b.exercises.map(e => ({ ...e }));
         }
         return block;
       });
+    }
+
+    function buildSessionFromPlan(dayKey, week, dateStr) {
+      const day = PLAN.days[dayKey];
+      const date = dateStr || todayStr();
+      const adj = adjustmentsFor(date);
+      const planBlocks = day.blocks.filter(b => !b.week || b.week === week);
       return {
         id: uuid(),
-        date: todayStr(),
+        date,
         created_at: new Date().toISOString(),
         completed_at: null,
         isPartial: false,
@@ -1457,7 +2410,9 @@ createApp({
         dayName: day.name,
         weekVariant: week,
         retro: false,
-        blocks
+        phase: adj.phase,
+        adjustments: adj,
+        blocks: buildBlocks(planBlocks, adj)
       };
     }
 
@@ -1496,21 +2451,14 @@ createApp({
 
     function startComebackSession() {
       retroMode.value = false;
-      const blocks = COMEBACK_DAY.blocks.map(b => {
-        const block = { ...b, done: false };
-        if (b.type === 'exercise') {
-          const prefill = getPrefillWeight(b.exercise_key);
-          block.sets = Array.from({ length: b.sets }, () => ({ weight: prefill, prefillWeight: prefill, reps: null, done: false }));
-        } else if (b.type === 'finisher_core') {
-          block.exercises = b.exercises.map(e => ({ ...e }));
-        }
-        return block;
-      });
+      const adj = adjustmentsFor(todayStr());
       activeSession.value = {
         id: uuid(), date: todayStr(), created_at: new Date().toISOString(),
         completed_at: null, isPartial: false, inProgress: true,
         dayKey: 'comeback', dayName: COMEBACK_DAY.name,
-        weekVariant: planState.weekVariant, retro: false, isComeback: true, blocks
+        weekVariant: planState.weekVariant, retro: false, isComeback: true,
+        phase: adj.phase, adjustments: adj,
+        blocks: buildBlocks(COMEBACK_DAY.blocks, adj)
       };
       activeBlockIndex.value = 0;
       sessions.value.push(activeSession.value);
@@ -1522,8 +2470,7 @@ createApp({
 
     function startRetroSession() {
       retroMode.value = true;
-      const session = buildSessionFromPlan(retroDayKey.value, retroWeek.value);
-      session.date = retroDate.value;
+      const session = buildSessionFromPlan(retroDayKey.value, retroWeek.value, retroDate.value);
       session.retro = true;
       session.inProgress = true;
       activeSession.value = session;
@@ -1782,10 +2729,12 @@ createApp({
     function exportData() {
       const data = {
         exported_at: new Date().toISOString(),
-        version: 1,
+        version: 2,
         sessions: sessions.value,
         plan_state: { ...planState },
-        exercises: exercises.value
+        exercises: exercises.value,
+        cycle: JSON.parse(JSON.stringify(cycle)),
+        wellness: wellness.value
       };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -1830,7 +2779,14 @@ createApp({
             exercises.value = data.exercises;
             save(LS.exercises, exercises.value);
           }
-          alert('Restored successfully. ' + data.sessions.length + ' sessions loaded.');
+          // Cycle + off-day data (backups from v1 won't have these — leave existing data alone)
+          if (data.cycle) { Object.assign(cycle, data.cycle); saveCycle(); }
+          if (Array.isArray(data.wellness)) { wellness.value = data.wellness; saveWellness(); }
+          const extras = [];
+          if (data.cycle && data.cycle.periods) extras.push(data.cycle.periods.length + ' period entries');
+          if (Array.isArray(data.wellness) && data.wellness.length) extras.push(data.wellness.length + ' off days');
+          alert('Restored successfully. ' + data.sessions.length + ' sessions loaded'
+                + (extras.length ? ', plus ' + extras.join(' and ') + '.' : '.'));
         } catch {
           alert('Could not read backup file. Make sure it\'s a valid workout backup JSON.');
         }
@@ -1845,6 +2801,23 @@ createApp({
       screen, screenParams, exercises, sessions, planState, activeSession, activeBlockIndex,
       partialSession, resetBannerShown, comebackMode, libFilter, showCelebration, celebrationData,
       retroDate, retroDayKey, retroWeek, todayStr: todayStr(),
+      // cycle + wellness state
+      cycle, wellness, showPeriodForm,
+      newPeriodStart, newPeriodEnd, newPeriodFlow, newPeriodSymptoms,
+      newWellnessType, newWellnessStart, newWellnessEnd, newWellnessNote,
+      symptomOptions: SYMPTOM_OPTIONS, wellnessTypes: WELLNESS_TYPES,
+      phaseList: PHASE_ORDER.map(k => CYCLE_PHASES[k]),
+      // cycle + wellness computed
+      currentPhase, calculatedPhaseLabel, phaseOverrideKey, phaseTimeline,
+      cycleLength, learnedCycleLength, learnedPeriodLength,
+      periodActive, currentPeriodDay, nextPeriodLabel, projectedPeriods, ovulationEstimate,
+      periodOverdueDays, cycleDataStale,
+      periodHistory, sickToday, recentSickDays, recoveryMode,
+      wellnessGrouped, wellnessStats, phaseStats, activeAdjustments,
+      // cycle + wellness actions
+      logPeriodStart, logPeriodEnd, savePeriodEntry, deletePeriod, toggleSymptom,
+      toggleCycleSetting, adjustSetting, setPhaseOverride, phaseEmoji,
+      logSickToday, saveWellnessRange, removeWellness, removeWellnessGroup,
       // plan
       plan: PLAN, muscleGroups: MUSCLE_GROUPS,
       // computed

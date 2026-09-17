@@ -569,7 +569,7 @@
           </div>
           <div class="block-body">
             <div v-if="progressionHint(block)" class="prog-hint" :class="progressionHint(block).kind">
-              <span class="prog-hint-icon">{{ progressionHint(block).kind==='up' ? '↑' : progressionHint(block).kind==='seed' ? '≈' : progressionHint(block).kind==='new' ? '✳' : '→' }}</span>
+              <span class="prog-hint-icon">{{ progressionHint(block).icon }}</span>
               <span>{{ progressionHint(block).text }}</span>
             </div>
             <div v-for="(s,si) in block.sets" :key="si" class="set-row" :class="{logged:s.done}">
@@ -2489,9 +2489,9 @@ createApp({
 
       if (!prev) {
         if (block.derivedFrom) {
-          return { kind:'seed', text:'Estimated from ' + block.derivedFrom.name + ' — adjust on the first set' };
+          return { kind:'seed', icon:'≈', text:'Estimated from ' + block.derivedFrom.name + ' — adjust on the first set' };
         }
-        return { kind:'new', text:'First time — start light and find your working weight' };
+        return { kind:'new', icon:'✳', text:'First time — start light and find your working weight' };
       }
 
       const reps = prev.sets.map(x => x.reps).join('/');
@@ -2500,10 +2500,10 @@ createApp({
         : prev.sets.length + ' × ' + reps + ' @ ' + prev.topWeight + 'kg';
 
       if (!prev.hitTarget) {
-        return { kind:'hold', text:'Last: ' + past + ' · stay here until all sets hit target' };
+        return { kind:'hold', icon:'→', text:'Last: ' + past + ' · stay here until all sets hit target' };
       }
       if (bodyweight || prev.topWeight == null) {
-        return { kind:'up', text:'Last: ' + past + ' · target met, add reps' };
+        return { kind:'up', icon:'↑', text:'Last: ' + past + ' · target met, add reps' };
       }
 
       const next = snapLoad(prev.topWeight + LOAD_STEP_KG);
@@ -2513,9 +2513,9 @@ createApp({
          the step only once there is room to absorb it. */
       if (jump > 0.25) {
         const target = block.targetReps || 12;
-        return { kind:'hold', text:'Last: ' + past + ' · next dumbbell is ' + next + 'kg (+' + Math.round(jump * 100) + '%). Build to ' + (target + 4) + ' reps first, then step up.' };
+        return { kind:'hold', icon:'→', text:'Last: ' + past + ' · next dumbbell is ' + next + 'kg (+' + Math.round(jump * 100) + '%). Build to ' + (target + 4) + ' reps first, then step up.' };
       }
-      return { kind:'up', text:'Last: ' + past + ' · target met, try ' + next + 'kg' };
+      return { kind:'up', icon:'↑', text:'Last: ' + past + ' · target met, try ' + next + 'kg' };
     }
 
     function blockHasAnyLoggedSet(block) {

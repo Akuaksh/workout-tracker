@@ -569,7 +569,7 @@
           </div>
           <div class="block-body">
             <div v-if="progressionHint(block)" class="prog-hint" :class="progressionHint(block).kind">
-              <span class="prog-hint-icon">{{ progressionHint(block).icon }}</span>
+              <span class="prog-hint-icon">{{ progressionHint(block).kind==='up' ? '↑' : progressionHint(block).kind==='seed' ? '≈' : progressionHint(block).kind==='new' ? '✳' : '→' }}</span>
               <span>{{ progressionHint(block).text }}</span>
             </div>
             <div v-for="(s,si) in block.sets" :key="si" class="set-row" :class="{logged:s.done}">
@@ -1287,43 +1287,17 @@ SEED_EXERCISES.forEach(e => e.id = e.key);
    5kg heavy costs a failed set. The result is only ever a prefill suggestion,
    never a logged value. */
 const EXERCISE_LINEAGE = {
-  // --- Biceps: same movement, different grip or support ---
-  hammer_curls:   [{ from:'db_curls', ratio:1 }, { from:'preacher_curls', ratio:1 }],
-  db_curls:       [{ from:'hammer_curls', ratio:1 }, { from:'preacher_curls', ratio:1 }],
-  preacher_curls: [{ from:'db_curls', ratio:0.9 }, { from:'hammer_curls', ratio:0.9 }],
-
-  // --- Triceps: cable pushdown is the strongest position, kickbacks the weakest ---
-  overhead_tricep_extension: [{ from:'triceps_pushdown', ratio:0.4 }, { from:'db_curls', ratio:0.8 }],
-  tricep_kickbacks:          [{ from:'overhead_tricep_extension', ratio:0.4 }, { from:'triceps_pushdown', ratio:0.25 }, { from:'db_curls', ratio:0.5 }],
-  triceps_pushdown:          [{ from:'cable_rows', ratio:0.7 }],
-
-  // --- Shoulders ---
-  arnold_press:            [{ from:'db_shoulder_press', ratio:0.8 }],
-  rear_delt_fly:           [{ from:'lateral_raise', ratio:1 }],
-  bent_over_lateral_raise: [{ from:'rear_delt_fly', ratio:1 }, { from:'lateral_raise', ratio:1 }],
-  db_around_the_world:     [{ from:'lateral_raise', ratio:1 }],
-  face_pulls:              [{ from:'cable_rows', ratio:0.7 }],
-
-  // --- Back ---
-  machine_row: [{ from:'cable_rows', ratio:1 }, { from:'lat_pulldown', ratio:0.8 }],
-  cable_rows:  [{ from:'machine_row', ratio:1 }, { from:'lat_pulldown', ratio:0.8 }],
-  db_pullover: [{ from:'one_hand_row', ratio:0.8 }],
-
-  // --- Chest ---
-  incline_db_press: [{ from:'db_chest_press', ratio:0.8 }],
-  db_chest_flyes:   [{ from:'db_chest_press', ratio:0.4 }],
-
-  // --- Legs: single-leg work is loaded far lighter than two-leg ---
-  bulgarian_split_squat: [{ from:'walking_lunges', ratio:0.9 }, { from:'goblet_squat', ratio:0.5 }, { from:'sumo_squat', ratio:0.45 }, { from:'leg_press', ratio:0.18 }],
-  walking_lunges:        [{ from:'goblet_squat', ratio:0.6 }, { from:'sumo_squat', ratio:0.55 }],
-  romanian_deadlift:     [{ from:'goblet_squat', ratio:1 }, { from:'leg_press', ratio:0.3 }],
-  goblet_squat:          [{ from:'sumo_squat', ratio:1 }],
-  sumo_squat:            [{ from:'goblet_squat', ratio:1 }],
-
-  // --- Machines: comparable stacks ---
-  leg_extensions: [{ from:'ham_curls', ratio:1 }],
-  ham_curls:      [{ from:'leg_extensions', ratio:1 }],
-  hip_abduction:  [{ from:'ham_curls', ratio:1 }, { from:'leg_press', ratio:0.8 }]
+  bulgarian_split_squat: [
+    { from:'walking_lunges', ratio:0.9 },   // both single-leg, dumbbells in hand
+    { from:'goblet_squat',   ratio:0.5 },   // one leg does the work instead of two
+    { from:'sumo_squat',     ratio:0.45 },
+    { from:'leg_press',      ratio:0.18 }   // machine load is far higher than free-weight
+  ],
+  tricep_kickbacks: [
+    { from:'overhead_tricep_extension', ratio:0.4 },  // worst leverage of the tricep moves
+    { from:'triceps_pushdown',          ratio:0.3 },
+    { from:'db_curls',                  ratio:0.5 }
+  ]
 };
 
 const MUSCLE_GROUPS = [
@@ -1351,86 +1325,94 @@ const LOWER_BELLY_CIRCUIT = [
   { key:'plank', seconds:45 }
 ];
 
-/* Five-day cycle, built around three constraints taken from logged history:
-   - No exercise repeats inside a week. Each focus area rotates through
-     different movements across the five days.
-   - Six exercises maximum, and the goal work (arms, legs) sits at positions
-     2-4. History shows position 1-3 finishing ~85% of the time but position
-     5-6 only ~50%, so anything parked at the end is work that mostly does
-     not happen.
-   - Week variants A-D vary the last slot across weeks, never within one. */
+/* Five-day cycle. Arms are trained 3x (days 1, 3, 4), legs 2x (days 2, 5),
+   lower-ab core 2x and cardio 2x. Week variants A-D rotate accessories and
+   step the core circuit from 2 rounds to 3 in the back half of the block. */
 const PLAN = {
   cycle: ['upper','lower','push','pull','legs'],
   days: {
-    upper: { name:'Arms & Shoulders', estMin:60, blocks:[
+    upper: { name:'Arms & Shoulders', estMin:65, blocks:[
       { type:'stretching' },
       { type:'exercise', exercise_key:'db_shoulder_press', sets:3, targetReps:10, anchor:true },
-      { type:'exercise', exercise_key:'hammer_curls', sets:3, targetReps:12 },
-      { type:'exercise', exercise_key:'overhead_tricep_extension', sets:3, targetReps:12 },
       { type:'exercise', exercise_key:'lat_pulldown', sets:3, targetReps:10, anchor:true },
       { type:'exercise', exercise_key:'lateral_raise', sets:3, targetReps:15 },
-      { type:'exercise', exercise_key:'rear_delt_fly', sets:2, targetReps:15, week:'A' },
-      { type:'exercise', exercise_key:'shrugs', sets:2, targetReps:15, week:'B' },
-      { type:'exercise', exercise_key:'bent_over_lateral_raise', sets:2, targetReps:15, week:'C' },
-      { type:'exercise', exercise_key:'db_around_the_world', sets:2, targetReps:12, week:'D' },
+      { type:'exercise', exercise_key:'hammer_curls', sets:3, targetReps:12 },
+      { type:'exercise', exercise_key:'overhead_tricep_extension', sets:3, targetReps:12 },
+      { type:'exercise', exercise_key:'tricep_kickbacks', sets:3, targetReps:15 },
+      { type:'exercise', exercise_key:'db_curls', sets:3, targetReps:12, week:'A' },
+      { type:'exercise', exercise_key:'preacher_curls', sets:3, targetReps:12, week:'B' },
+      { type:'exercise', exercise_key:'db_curls', sets:3, targetReps:12, week:'C' },
+      { type:'exercise', exercise_key:'preacher_curls', sets:3, targetReps:12, week:'D' },
       { type:'cardio_warmup', minutes:10 },
       { type:'cooldown' }
     ]},
-    lower: { name:'Legs & Glutes', estMin:60, blocks:[
+    lower: { name:'Legs & Glutes', estMin:65, blocks:[
       { type:'stretching' },
       { type:'exercise', exercise_key:'bulgarian_split_squat', sets:3, targetReps:10, anchor:true },
       { type:'exercise', exercise_key:'hip_thrust', sets:3, targetReps:12, anchor:true },
       { type:'exercise', exercise_key:'romanian_deadlift', sets:3, targetReps:10, anchor:true },
       { type:'exercise', exercise_key:'leg_press', sets:3, targetReps:12 },
-      { type:'exercise', exercise_key:'leg_extensions', sets:3, targetReps:15 },
+      { type:'exercise', exercise_key:'goblet_squat', sets:3, targetReps:12, week:'A' },
+      { type:'exercise', exercise_key:'walking_lunges', sets:3, targetReps:12, week:'B' },
+      { type:'exercise', exercise_key:'hip_abduction', sets:3, targetReps:15, week:'C' },
+      { type:'exercise', exercise_key:'sumo_squat', sets:3, targetReps:12, week:'D' },
+      { type:'exercise', exercise_key:'calf_raise', sets:3, targetReps:15 },
       { type:'finisher_core', rounds:2, week:'A', exercises: LOWER_BELLY_CIRCUIT },
       { type:'finisher_core', rounds:2, week:'B', exercises: LOWER_BELLY_CIRCUIT },
       { type:'finisher_core', rounds:3, week:'C', exercises: LOWER_BELLY_CIRCUIT },
       { type:'finisher_core', rounds:3, week:'D', exercises: LOWER_BELLY_CIRCUIT },
       { type:'cooldown' }
     ]},
-    push: { name:'Chest, Arms & Core', estMin:60, blocks:[
+    push: { name:'Arms & Upper Tone', estMin:60, blocks:[
       { type:'stretching' },
       { type:'exercise', exercise_key:'db_chest_press', sets:3, targetReps:12, anchor:true },
+      { type:'exercise', exercise_key:'incline_db_press', sets:3, targetReps:12, week:'A' },
+      { type:'exercise', exercise_key:'db_chest_flyes', sets:3, targetReps:12, week:'B' },
+      { type:'exercise', exercise_key:'incline_db_press', sets:3, targetReps:12, week:'C' },
+      { type:'exercise', exercise_key:'db_chest_flyes', sets:3, targetReps:12, week:'D' },
+      { type:'exercise', exercise_key:'lateral_raise', sets:3, targetReps:15, week:'A' },
+      { type:'exercise', exercise_key:'arnold_press', sets:3, targetReps:12, week:'B' },
+      { type:'exercise', exercise_key:'lateral_raise', sets:3, targetReps:15, week:'C' },
+      { type:'exercise', exercise_key:'rear_delt_fly', sets:3, targetReps:15, week:'D' },
       { type:'exercise', exercise_key:'tricep_kickbacks', sets:3, targetReps:15 },
-      { type:'exercise', exercise_key:'db_curls', sets:3, targetReps:12 },
-      { type:'exercise', exercise_key:'incline_db_press', sets:3, targetReps:12 },
-      { type:'exercise', exercise_key:'arnold_press', sets:3, targetReps:12 },
+      { type:'exercise', exercise_key:'triceps_pushdown', sets:3, targetReps:12, week:'A' },
+      { type:'exercise', exercise_key:'overhead_tricep_extension', sets:3, targetReps:12, week:'B' },
+      { type:'exercise', exercise_key:'triceps_pushdown', sets:3, targetReps:12, week:'C' },
+      { type:'exercise', exercise_key:'overhead_tricep_extension', sets:3, targetReps:12, week:'D' },
+      { type:'exercise', exercise_key:'hammer_curls', sets:3, targetReps:12 },
+      { type:'cardio_warmup', minutes:10 },
+      { type:'cooldown' }
+    ]},
+    pull: { name:'Back & Biceps', estMin:65, blocks:[
+      { type:'stretching' },
+      { type:'exercise', exercise_key:'lat_pulldown', sets:3, targetReps:10, anchor:true },
+      { type:'exercise', exercise_key:'cable_rows', sets:3, targetReps:10, anchor:true },
+      { type:'exercise', exercise_key:'one_hand_row', sets:3, targetReps:12 },
+      { type:'exercise', exercise_key:'preacher_curls', sets:3, targetReps:12, week:'A' },
+      { type:'exercise', exercise_key:'db_curls', sets:3, targetReps:12, week:'B' },
+      { type:'exercise', exercise_key:'hammer_curls', sets:3, targetReps:12, week:'C' },
+      { type:'exercise', exercise_key:'preacher_curls', sets:3, targetReps:12, week:'D' },
+      { type:'exercise', exercise_key:'face_pulls', sets:3, targetReps:15 },
       { type:'finisher_core', rounds:2, week:'A', exercises: LOWER_BELLY_CIRCUIT },
       { type:'finisher_core', rounds:2, week:'B', exercises: LOWER_BELLY_CIRCUIT },
       { type:'finisher_core', rounds:3, week:'C', exercises: LOWER_BELLY_CIRCUIT },
       { type:'finisher_core', rounds:3, week:'D', exercises: LOWER_BELLY_CIRCUIT },
-      { type:'cardio_warmup', minutes:10 },
-      { type:'cooldown' }
-    ]},
-    pull: { name:'Back & Biceps', estMin:60, blocks:[
-      { type:'stretching' },
-      { type:'exercise', exercise_key:'cable_rows', sets:3, targetReps:10, anchor:true },
-      { type:'exercise', exercise_key:'preacher_curls', sets:3, targetReps:12 },
-      { type:'exercise', exercise_key:'triceps_pushdown', sets:3, targetReps:12 },
-      { type:'exercise', exercise_key:'one_hand_row', sets:3, targetReps:12 },
-      { type:'exercise', exercise_key:'face_pulls', sets:3, targetReps:15 },
-      { type:'exercise', exercise_key:'machine_row', sets:2, targetReps:12, week:'A' },
-      { type:'exercise', exercise_key:'db_pullover', sets:2, targetReps:12, week:'B' },
-      { type:'exercise', exercise_key:'back_extension', sets:2, targetReps:12, week:'C' },
-      { type:'exercise', exercise_key:'db_pullover', sets:2, targetReps:12, week:'D' },
-      { type:'cardio_warmup', minutes:10 },
       { type:'cooldown' }
     ]},
     legs: { name:'Legs, Glutes & Burn', estMin:65, blocks:[
       { type:'stretching' },
-      { type:'exercise', exercise_key:'goblet_squat', sets:3, targetReps:12, anchor:true, week:'A' },
-      { type:'exercise', exercise_key:'sumo_squat', sets:3, targetReps:12, anchor:true, week:'B' },
-      { type:'exercise', exercise_key:'goblet_squat', sets:3, targetReps:12, anchor:true, week:'C' },
-      { type:'exercise', exercise_key:'sumo_squat', sets:3, targetReps:12, anchor:true, week:'D' },
-      { type:'exercise', exercise_key:'walking_lunges', sets:3, targetReps:12 },
+      { type:'exercise', exercise_key:'bulgarian_split_squat', sets:3, targetReps:12, anchor:true },
+      { type:'exercise', exercise_key:'hip_thrust', sets:3, targetReps:15, anchor:true },
       { type:'exercise', exercise_key:'ham_curls', sets:3, targetReps:15 },
-      { type:'exercise', exercise_key:'hip_abduction', sets:3, targetReps:15 },
-      { type:'exercise', exercise_key:'glute_bridge', sets:3, targetReps:15 },
-      { type:'exercise', exercise_key:'calf_raise', sets:3, targetReps:15, week:'A' },
-      { type:'exercise', exercise_key:'kick_backs', sets:2, targetReps:15, week:'B' },
-      { type:'exercise', exercise_key:'calf_raise', sets:3, targetReps:15, week:'C' },
-      { type:'exercise', exercise_key:'lateral_leg_lift', sets:2, targetReps:15, week:'D' },
+      { type:'exercise', exercise_key:'sumo_squat', sets:3, targetReps:12, week:'A' },
+      { type:'exercise', exercise_key:'leg_extensions', sets:3, targetReps:12, week:'B' },
+      { type:'exercise', exercise_key:'goblet_squat', sets:3, targetReps:12, week:'C' },
+      { type:'exercise', exercise_key:'walking_lunges', sets:3, targetReps:12, week:'D' },
+      { type:'exercise', exercise_key:'kick_backs', sets:3, targetReps:15, week:'A' },
+      { type:'exercise', exercise_key:'hip_abduction', sets:3, targetReps:15, week:'B' },
+      { type:'exercise', exercise_key:'kick_backs', sets:3, targetReps:15, week:'C' },
+      { type:'exercise', exercise_key:'hip_abduction', sets:3, targetReps:15, week:'D' },
+      { type:'exercise', exercise_key:'calf_raise', sets:3, targetReps:15 },
       { type:'finisher_cardio', minutes:25 },
       { type:'cooldown' }
     ]}
@@ -1575,15 +1557,7 @@ const todayStr = () => localDateStr(new Date());
 const parseDate = (ds) => { const [y,m,d] = String(ds).split('-').map(Number); return new Date(y, m-1, d); };
 const daysBetween = (a, b) => Math.round((parseDate(b) - parseDate(a)) / 86400000);
 const addDays = (ds, n) => { const d = parseDate(ds); d.setDate(d.getDate() + n); return localDateStr(d); };
-/* Every weight in four months of logged history is a multiple of 2.5kg, so
-   that is the real step on this gym's rack and stacks. A suggestion that does
-   not land on one — 4.5kg, 17kg — cannot actually be loaded, so all derived
-   loads snap to the grid and never fall below the lightest dumbbell. */
-const LOAD_STEP_KG = 2.5;
-const snapLoad = (v) => {
-  if (v == null || v === '' || isNaN(v)) return null;
-  return Math.max(LOAD_STEP_KG, Math.round(v / LOAD_STEP_KG) * LOAD_STEP_KG);
-};
+const roundLoad = (v) => (v == null || v === '' || isNaN(v)) ? null : Math.max(0, Math.round(v * 2) / 2);
 
 /* ========================================================================== */
 /*  APP                                                                      */
@@ -2445,7 +2419,7 @@ createApp({
           const w = lastLoggedWeight(src.from);
           if (w != null) {
             return {
-              weight: snapLoad(w * src.ratio),
+              weight: roundLoad(w * src.ratio),
               derivedFrom: { key: src.from, name: exerciseName(src.from), ratio: src.ratio }
             };
           }
@@ -2478,6 +2452,14 @@ createApp({
       return null;
     }
 
+    /* How much to add once a lift is comfortably at target. Small jumps on the
+       isolation work, where 2.5kg is often a 25% increase. */
+    function loadStep(exKey) {
+      const ex = exercises.value.find(e => e.key === exKey);
+      if (!ex) return 2.5;
+      return ['biceps','triceps','shoulders'].includes(ex.group) ? 1 : 2.5;
+    }
+
     /* Advisory only — this never writes to a set. The prefilled weight stays
        whatever it was; this just tells you what last time looked like and what
        a sensible next step would be. */
@@ -2489,9 +2471,9 @@ createApp({
 
       if (!prev) {
         if (block.derivedFrom) {
-          return { kind:'seed', icon:'≈', text:'Estimated from ' + block.derivedFrom.name + ' — adjust on the first set' };
+          return { kind:'seed', text:'Estimated from ' + block.derivedFrom.name + ' — adjust on the first set' };
         }
-        return { kind:'new', icon:'✳', text:'First time — start light and find your working weight' };
+        return { kind:'new', text:'First time — start light and find your working weight' };
       }
 
       const reps = prev.sets.map(x => x.reps).join('/');
@@ -2500,22 +2482,13 @@ createApp({
         : prev.sets.length + ' × ' + reps + ' @ ' + prev.topWeight + 'kg';
 
       if (!prev.hitTarget) {
-        return { kind:'hold', icon:'→', text:'Last: ' + past + ' · stay here until all sets hit target' };
+        return { kind:'hold', text:'Last: ' + past + ' · stay here until all sets hit target' };
       }
       if (bodyweight || prev.topWeight == null) {
-        return { kind:'up', icon:'↑', text:'Last: ' + past + ' · target met, add reps' };
+        return { kind:'up', text:'Last: ' + past + ' · target met, add reps' };
       }
-
-      const next = snapLoad(prev.topWeight + LOAD_STEP_KG);
-      const jump = (next - prev.topWeight) / prev.topWeight;
-      /* On the lightest dumbbells one step up is a huge relative jump — 2.5kg to
-         5kg doubles the load. Build reps at the current weight first and take
-         the step only once there is room to absorb it. */
-      if (jump > 0.25) {
-        const target = block.targetReps || 12;
-        return { kind:'hold', icon:'→', text:'Last: ' + past + ' · next dumbbell is ' + next + 'kg (+' + Math.round(jump * 100) + '%). Build to ' + (target + 4) + ' reps first, then step up.' };
-      }
-      return { kind:'up', icon:'↑', text:'Last: ' + past + ' · target met, try ' + next + 'kg' };
+      const next = roundLoad(prev.topWeight + loadStep(key));
+      return { kind:'up', text:'Last: ' + past + ' · target met, try ' + next + 'kg' };
     }
 
     function blockHasAnyLoggedSet(block) {
@@ -2534,7 +2507,7 @@ createApp({
           const basePrefill = prefillInfo.weight;
           if (prefillInfo.derivedFrom) block.derivedFrom = prefillInfo.derivedFrom;
           const setCount = applyAdjustmentsToBlock(block, b, adj, basePrefill != null);
-          const prefill = adj.loadMult !== 1 ? snapLoad(basePrefill == null ? null : basePrefill * adj.loadMult) : basePrefill;
+          const prefill = adj.loadMult !== 1 ? roundLoad(basePrefill == null ? null : basePrefill * adj.loadMult) : basePrefill;
           block.sets = Array.from({ length: setCount }, () => ({
             weight: prefill,
             prefillWeight: prefill,

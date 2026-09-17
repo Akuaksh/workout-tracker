@@ -124,6 +124,12 @@
     .set-input:focus { outline:2px solid var(--orange); }
     .set-unit { font-size:12px; color:var(--text2); width:30px; }
     .set-x { font-size:14px; color:var(--text3); padding:0 4px; }
+    .prog-hint { display:flex; gap:7px; align-items:flex-start; font-size:12.5px; line-height:1.4; padding:9px 11px; border-radius:10px; background:var(--card2); color:var(--text2); margin-bottom:10px; }
+    .prog-hint-icon { flex-shrink:0; font-weight:700; }
+    .prog-hint.up { color:var(--green); }
+    .prog-hint.seed { color:var(--teal); }
+    .prog-hint.new { color:var(--text2); }
+    .prog-hint.hold { color:var(--text2); }
     .set-save { background:var(--orange); color:#fff; border:none; border-radius:10px; padding:9px 14px; font-size:13px; font-weight:600; cursor:pointer; margin-left:auto; min-width:56px; }
     .set-save.done { background:var(--green); color:#000; }
     .set-save.done::before { content:'✓ '; }
@@ -562,6 +568,10 @@
             </div>
           </div>
           <div class="block-body">
+            <div v-if="progressionHint(block)" class="prog-hint" :class="progressionHint(block).kind">
+              <span class="prog-hint-icon">{{ progressionHint(block).kind==='up' ? '↑' : progressionHint(block).kind==='seed' ? '≈' : progressionHint(block).kind==='new' ? '✳' : '→' }}</span>
+              <span>{{ progressionHint(block).text }}</span>
+            </div>
             <div v-for="(s,si) in block.sets" :key="si" class="set-row" :class="{logged:s.done}">
               <div class="set-num">{{ si+1 }}</div>
               <template v-if="!exerciseIsBodyweight(block.exercise_key)">
@@ -1270,6 +1280,26 @@ const SEED_EXERCISES = [
 ];
 SEED_EXERCISES.forEach(e => e.id = e.key);
 
+/* Where to borrow a starting weight when an exercise has no history of its own
+   — used when the plan introduces a movement you have never logged.
+   Sources are tried in order and the first one with history wins. Ratios are
+   deliberately conservative: starting 2kg light costs one session, starting
+   5kg heavy costs a failed set. The result is only ever a prefill suggestion,
+   never a logged value. */
+const EXERCISE_LINEAGE = {
+  bulgarian_split_squat: [
+    { from:'walking_lunges', ratio:0.9 },   // both single-leg, dumbbells in hand
+    { from:'goblet_squat',   ratio:0.5 },   // one leg does the work instead of two
+    { from:'sumo_squat',     ratio:0.45 },
+    { from:'leg_press',      ratio:0.18 }   // machine load is far higher than free-weight
+  ],
+  tricep_kickbacks: [
+    { from:'overhead_tricep_extension', ratio:0.4 },  // worst leverage of the tricep moves
+    { from:'triceps_pushdown',          ratio:0.3 },
+    { from:'db_curls',                  ratio:0.5 }
+  ]
+};
+
 const MUSCLE_GROUPS = [
   { key:'chest', label:'Chest' },
   { key:'back', label:'Back' },
@@ -1295,11 +1325,11 @@ const LOWER_BELLY_CIRCUIT = [
   { key:'plank', seconds:45 }
 ];
 
-/* Four-day cycle for a 4x/week schedule, so every objective lands once a week
-   and week variants A-D line up with weeks 1-4 of the block.
-   Arms 2x, legs 2x, lower-ab core 2x, cardio 2x per week. */
+/* Five-day cycle. Arms are trained 3x (days 1, 3, 4), legs 2x (days 2, 5),
+   lower-ab core 2x and cardio 2x. Week variants A-D rotate accessories and
+   step the core circuit from 2 rounds to 3 in the back half of the block. */
 const PLAN = {
-  cycle: ['upper','lower','push','legs'],
+  cycle: ['upper','lower','push','pull','legs'],
   days: {
     upper: { name:'Arms & Shoulders', estMin:65, blocks:[
       { type:'stretching' },
@@ -1336,7 +1366,10 @@ const PLAN = {
     push: { name:'Arms & Upper Tone', estMin:60, blocks:[
       { type:'stretching' },
       { type:'exercise', exercise_key:'db_chest_press', sets:3, targetReps:12, anchor:true },
-      { type:'exercise', exercise_key:'cable_rows', sets:3, targetReps:12, anchor:true },
+      { type:'exercise', exercise_key:'incline_db_press', sets:3, targetReps:12, week:'A' },
+      { type:'exercise', exercise_key:'db_chest_flyes', sets:3, targetReps:12, week:'B' },
+      { type:'exercise', exercise_key:'incline_db_press', sets:3, targetReps:12, week:'C' },
+      { type:'exercise', exercise_key:'db_chest_flyes', sets:3, targetReps:12, week:'D' },
       { type:'exercise', exercise_key:'lateral_raise', sets:3, targetReps:15, week:'A' },
       { type:'exercise', exercise_key:'arnold_press', sets:3, targetReps:12, week:'B' },
       { type:'exercise', exercise_key:'lateral_raise', sets:3, targetReps:15, week:'C' },
@@ -1347,6 +1380,19 @@ const PLAN = {
       { type:'exercise', exercise_key:'triceps_pushdown', sets:3, targetReps:12, week:'C' },
       { type:'exercise', exercise_key:'overhead_tricep_extension', sets:3, targetReps:12, week:'D' },
       { type:'exercise', exercise_key:'hammer_curls', sets:3, targetReps:12 },
+      { type:'cardio_warmup', minutes:10 },
+      { type:'cooldown' }
+    ]},
+    pull: { name:'Back & Biceps', estMin:65, blocks:[
+      { type:'stretching' },
+      { type:'exercise', exercise_key:'lat_pulldown', sets:3, targetReps:10, anchor:true },
+      { type:'exercise', exercise_key:'cable_rows', sets:3, targetReps:10, anchor:true },
+      { type:'exercise', exercise_key:'one_hand_row', sets:3, targetReps:12 },
+      { type:'exercise', exercise_key:'preacher_curls', sets:3, targetReps:12, week:'A' },
+      { type:'exercise', exercise_key:'db_curls', sets:3, targetReps:12, week:'B' },
+      { type:'exercise', exercise_key:'hammer_curls', sets:3, targetReps:12, week:'C' },
+      { type:'exercise', exercise_key:'preacher_curls', sets:3, targetReps:12, week:'D' },
+      { type:'exercise', exercise_key:'face_pulls', sets:3, targetReps:15 },
       { type:'finisher_core', rounds:2, week:'A', exercises: LOWER_BELLY_CIRCUIT },
       { type:'finisher_core', rounds:2, week:'B', exercises: LOWER_BELLY_CIRCUIT },
       { type:'finisher_core', rounds:3, week:'C', exercises: LOWER_BELLY_CIRCUIT },
@@ -1368,17 +1414,6 @@ const PLAN = {
       { type:'exercise', exercise_key:'hip_abduction', sets:3, targetReps:15, week:'D' },
       { type:'exercise', exercise_key:'calf_raise', sets:3, targetReps:15 },
       { type:'finisher_cardio', minutes:25 },
-      { type:'cooldown' }
-    ]},
-    /* Off-cycle. Kept so sessions already logged against this key still resolve
-       to a readable name in History. */
-    pull: { name:'Pull + Finisher', estMin:65, blocks:[
-      { type:'stretching' },
-      { type:'exercise', exercise_key:'lat_pulldown', sets:3, targetReps:12, anchor:true },
-      { type:'exercise', exercise_key:'cable_rows', sets:3, targetReps:10, anchor:true },
-      { type:'exercise', exercise_key:'one_hand_row', sets:3, targetReps:12 },
-      { type:'exercise', exercise_key:'db_curls', sets:3, targetReps:12 },
-      { type:'exercise', exercise_key:'face_pulls', sets:3, targetReps:15 },
       { type:'cooldown' }
     ]}
   },
@@ -2356,8 +2391,8 @@ createApp({
       return exNames.length ? exNames.slice(0, 3).join(', ') + (exNames.length > 3 ? '…' : '') : '—';
     }
 
-    function getPrefillWeight(exKey) {
-      // Find most recent session where this exercise was logged with weight
+    /* Most recent logged weight for one exercise, or null if never trained. */
+    function lastLoggedWeight(exKey) {
       const sorted = [...sessions.value].filter(s => !s.inProgress).sort((a,b) => b.date.localeCompare(a.date));
       for (const s of sorted) {
         for (const b of s.blocks) {
@@ -2368,6 +2403,92 @@ createApp({
         }
       }
       return null;
+    }
+
+    /* Prefill weight plus where it came from. An exercise you have trained uses
+       its own last weight. One you have never trained borrows from the closest
+       movement you have history for, so a plan change does not reset you to
+       blank inputs. */
+    function getPrefillInfo(exKey) {
+      const own = lastLoggedWeight(exKey);
+      if (own != null) return { weight: own, derivedFrom: null };
+
+      const lineage = EXERCISE_LINEAGE[exKey];
+      if (lineage) {
+        for (const src of lineage) {
+          const w = lastLoggedWeight(src.from);
+          if (w != null) {
+            return {
+              weight: roundLoad(w * src.ratio),
+              derivedFrom: { key: src.from, name: exerciseName(src.from), ratio: src.ratio }
+            };
+          }
+        }
+      }
+      return { weight: null, derivedFrom: null };
+    }
+
+    function getPrefillWeight(exKey) { return getPrefillInfo(exKey).weight; }
+
+    /* Most recent completed performance of one exercise: the sets as logged,
+       plus whether every set reached the rep target it was given that day. */
+    function lastPerformance(exKey) {
+      const sorted = [...sessions.value].filter(s => !s.inProgress).sort((a,b) => b.date.localeCompare(a.date));
+      for (const s of sorted) {
+        for (const b of s.blocks) {
+          if (b.type === 'exercise' && b.exercise_key === exKey) {
+            const done = b.sets.filter(x => x.done && x.reps != null);
+            if (!done.length) continue;
+            const target = b.targetReps || null;
+            return {
+              date: s.date,
+              sets: done,
+              topWeight: done.reduce((m,x) => (x.weight != null && (m == null || x.weight > m)) ? x.weight : m, null),
+              hitTarget: target != null && done.length >= b.sets.length && done.every(x => x.reps >= target)
+            };
+          }
+        }
+      }
+      return null;
+    }
+
+    /* How much to add once a lift is comfortably at target. Small jumps on the
+       isolation work, where 2.5kg is often a 25% increase. */
+    function loadStep(exKey) {
+      const ex = exercises.value.find(e => e.key === exKey);
+      if (!ex) return 2.5;
+      return ['biceps','triceps','shoulders'].includes(ex.group) ? 1 : 2.5;
+    }
+
+    /* Advisory only — this never writes to a set. The prefilled weight stays
+       whatever it was; this just tells you what last time looked like and what
+       a sensible next step would be. */
+    function progressionHint(block) {
+      if (block.type !== 'exercise') return null;
+      const key = block.exercise_key;
+      const bodyweight = exerciseIsBodyweight(key);
+      const prev = lastPerformance(key);
+
+      if (!prev) {
+        if (block.derivedFrom) {
+          return { kind:'seed', text:'Estimated from ' + block.derivedFrom.name + ' — adjust on the first set' };
+        }
+        return { kind:'new', text:'First time — start light and find your working weight' };
+      }
+
+      const reps = prev.sets.map(x => x.reps).join('/');
+      const past = bodyweight || prev.topWeight == null
+        ? prev.sets.length + ' × ' + reps + ' reps'
+        : prev.sets.length + ' × ' + reps + ' @ ' + prev.topWeight + 'kg';
+
+      if (!prev.hitTarget) {
+        return { kind:'hold', text:'Last: ' + past + ' · stay here until all sets hit target' };
+      }
+      if (bodyweight || prev.topWeight == null) {
+        return { kind:'up', text:'Last: ' + past + ' · target met, add reps' };
+      }
+      const next = roundLoad(prev.topWeight + loadStep(key));
+      return { kind:'up', text:'Last: ' + past + ' · target met, try ' + next + 'kg' };
     }
 
     function blockHasAnyLoggedSet(block) {
@@ -2382,7 +2503,9 @@ createApp({
       return planBlocks.map(b => {
         const block = { ...b, done: false };
         if (b.type === 'exercise') {
-          const basePrefill = getPrefillWeight(b.exercise_key);
+          const prefillInfo = getPrefillInfo(b.exercise_key);
+          const basePrefill = prefillInfo.weight;
+          if (prefillInfo.derivedFrom) block.derivedFrom = prefillInfo.derivedFrom;
           const setCount = applyAdjustmentsToBlock(block, b, adj, basePrefill != null);
           const prefill = adj.loadMult !== 1 ? roundLoad(basePrefill == null ? null : basePrefill * adj.loadMult) : basePrefill;
           block.sets = Array.from({ length: setCount }, () => ({
@@ -2833,6 +2956,7 @@ createApp({
       filteredLibrary, lastBackupLabel, backupOverdue,
       // helpers
       exerciseName, exerciseIsBodyweight, planDayName, groupLabel, relativeDate,
+      progressionHint,
       dayOf, monthOf, countLoggedExercises, historyExerciseSummary, blockHasAnyLoggedSet,
       // actions
       navigate, goBack, startSession, resumeSession, discardAndStartFresh, startComebackSession, startRetroSession,

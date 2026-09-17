@@ -1235,6 +1235,7 @@ const SEED_EXERCISES = [
   // Triceps
   { key:'triceps_pushdown', name:'Triceps Pushdown', group:'triceps' },
   { key:'overhead_tricep_extension', name:'Overhead Tricep Extension', group:'triceps' },
+  { key:'tricep_kickbacks', name:'Tricep Kickbacks', group:'triceps' },
   // Legs / glutes
   { key:'goblet_squat', name:'Goblet Squat', group:'legs' },
   { key:'sumo_squat', name:'Sumo Squat', group:'legs' },
@@ -1245,9 +1246,10 @@ const SEED_EXERCISES = [
   { key:'hip_thrust', name:'Hip Thrust', group:'glutes' },
   { key:'glute_bridge', name:'Glute Bridge', group:'glutes', bodyweight:true },
   { key:'lateral_leg_lift', name:'Lateral Leg Lift', group:'glutes', bodyweight:true },
-  { key:'kick_backs', name:'Kick Backs', group:'glutes', bodyweight:true },
+  { key:'kick_backs', name:'Glute Kickbacks', group:'glutes', bodyweight:true },
   { key:'hip_abduction', name:'Hip Abduction', group:'glutes' },
   { key:'romanian_deadlift', name:'Romanian Deadlift', group:'legs' },
+  { key:'bulgarian_split_squat', name:'Bulgarian Split Squat', group:'legs' },
   { key:'calf_raise', name:'Calf Raise', group:'legs' },
   { key:'lunge_twist', name:'Lunge Twist', group:'legs', bodyweight:true },
   { key:'heel_raises', name:'Heel Raises', group:'legs', bodyweight:true },
@@ -1283,103 +1285,100 @@ const MUSCLE_GROUPS = [
 /* ========================================================================== */
 /*  PLAN                                                                     */
 /* ========================================================================== */
+/* Lower-ab biased circuit. buildBlocks() copies this per session, so one
+   shared constant is safe to reference from several days. */
+const LOWER_BELLY_CIRCUIT = [
+  { key:'leg_raises', reps:12 },
+  { key:'hollow_hold', seconds:25 },
+  { key:'dead_bugs', reps:12, note:' /side' },
+  { key:'mountain_climbers', seconds:30 },
+  { key:'plank', seconds:45 }
+];
+
+/* Four-day cycle for a 4x/week schedule, so every objective lands once a week
+   and week variants A-D line up with weeks 1-4 of the block.
+   Arms 2x, legs 2x, lower-ab core 2x, cardio 2x per week. */
 const PLAN = {
-  cycle: ['upper','lower','push','pull','legs'],
+  cycle: ['upper','lower','push','legs'],
   days: {
-    upper: { name:'Upper Strength', estMin:60, blocks:[
+    upper: { name:'Arms & Shoulders', estMin:65, blocks:[
       { type:'stretching' },
-      { type:'exercise', exercise_key:'db_chest_press', sets:3, targetReps:8, anchor:true },
-      { type:'exercise', exercise_key:'lat_pulldown', sets:3, targetReps:8, anchor:true },
       { type:'exercise', exercise_key:'db_shoulder_press', sets:3, targetReps:10, anchor:true },
-      { type:'exercise', exercise_key:'machine_row', sets:3, targetReps:10, week:'A' },
-      { type:'exercise', exercise_key:'one_hand_row', sets:3, targetReps:10, week:'B' },
-      { type:'exercise', exercise_key:'rear_delt_fly', sets:3, targetReps:15, week:'C' },
-      { type:'exercise', exercise_key:'bent_over_lateral_raise', sets:3, targetReps:15, week:'D' },
+      { type:'exercise', exercise_key:'lat_pulldown', sets:3, targetReps:10, anchor:true },
       { type:'exercise', exercise_key:'lateral_raise', sets:3, targetReps:15 },
-      { type:'exercise', exercise_key:'db_curls', sets:3, targetReps:12 },
-      { type:'exercise', exercise_key:'hammer_curls', sets:3, targetReps:12, week:'C' },
-      { type:'exercise', exercise_key:'overhead_tricep_extension', sets:3, targetReps:12, week:'D' },
+      { type:'exercise', exercise_key:'hammer_curls', sets:3, targetReps:12 },
+      { type:'exercise', exercise_key:'overhead_tricep_extension', sets:3, targetReps:12 },
+      { type:'exercise', exercise_key:'tricep_kickbacks', sets:3, targetReps:15 },
+      { type:'exercise', exercise_key:'db_curls', sets:3, targetReps:12, week:'A' },
+      { type:'exercise', exercise_key:'preacher_curls', sets:3, targetReps:12, week:'B' },
+      { type:'exercise', exercise_key:'db_curls', sets:3, targetReps:12, week:'C' },
+      { type:'exercise', exercise_key:'preacher_curls', sets:3, targetReps:12, week:'D' },
       { type:'cardio_warmup', minutes:10 },
       { type:'cooldown' }
     ]},
-    lower: { name:'Lower Strength', estMin:60, blocks:[
+    lower: { name:'Legs & Glutes', estMin:65, blocks:[
       { type:'stretching' },
-      { type:'exercise', exercise_key:'leg_press', sets:3, targetReps:10, anchor:true },
+      { type:'exercise', exercise_key:'bulgarian_split_squat', sets:3, targetReps:10, anchor:true },
       { type:'exercise', exercise_key:'hip_thrust', sets:3, targetReps:12, anchor:true },
-      { type:'exercise', exercise_key:'glute_bridge', sets:3, targetReps:15 },
-      { type:'exercise', exercise_key:'back_extension', sets:3, targetReps:12, anchor:true },
-      { type:'exercise', exercise_key:'goblet_squat', sets:3, targetReps:10, week:'A' },
-      { type:'exercise', exercise_key:'walking_lunges', sets:3, targetReps:10, week:'B' },
-      { type:'exercise', exercise_key:'romanian_deadlift', sets:3, targetReps:10, week:'C' },
-      { type:'exercise', exercise_key:'leg_extensions', sets:3, targetReps:12, week:'C' },
-      { type:'exercise', exercise_key:'goblet_squat', sets:3, targetReps:10, week:'D' },
-      { type:'exercise', exercise_key:'hip_abduction', sets:3, targetReps:15, week:'D' },
+      { type:'exercise', exercise_key:'romanian_deadlift', sets:3, targetReps:10, anchor:true },
+      { type:'exercise', exercise_key:'leg_press', sets:3, targetReps:12 },
+      { type:'exercise', exercise_key:'goblet_squat', sets:3, targetReps:12, week:'A' },
+      { type:'exercise', exercise_key:'walking_lunges', sets:3, targetReps:12, week:'B' },
+      { type:'exercise', exercise_key:'hip_abduction', sets:3, targetReps:15, week:'C' },
+      { type:'exercise', exercise_key:'sumo_squat', sets:3, targetReps:12, week:'D' },
       { type:'exercise', exercise_key:'calf_raise', sets:3, targetReps:15 },
-      { type:'cardio_warmup', minutes:10, note:'incline' },
+      { type:'finisher_core', rounds:2, week:'A', exercises: LOWER_BELLY_CIRCUIT },
+      { type:'finisher_core', rounds:2, week:'B', exercises: LOWER_BELLY_CIRCUIT },
+      { type:'finisher_core', rounds:3, week:'C', exercises: LOWER_BELLY_CIRCUIT },
+      { type:'finisher_core', rounds:3, week:'D', exercises: LOWER_BELLY_CIRCUIT },
       { type:'cooldown' }
     ]},
-    push: { name:'Push + Finisher', estMin:65, blocks:[
+    push: { name:'Arms & Upper Tone', estMin:60, blocks:[
       { type:'stretching' },
       { type:'exercise', exercise_key:'db_chest_press', sets:3, targetReps:12, anchor:true },
-      { type:'exercise', exercise_key:'db_shoulder_press', sets:3, targetReps:12, anchor:true },
-      { type:'exercise', exercise_key:'incline_db_press', sets:3, targetReps:12, week:'A' },
-      { type:'exercise', exercise_key:'db_chest_flyes', sets:3, targetReps:12, week:'B' },
+      { type:'exercise', exercise_key:'cable_rows', sets:3, targetReps:12, anchor:true },
       { type:'exercise', exercise_key:'lateral_raise', sets:3, targetReps:15, week:'A' },
-      { type:'exercise', exercise_key:'shrugs', sets:3, targetReps:15, week:'B' },
-      { type:'exercise', exercise_key:'db_around_the_world', sets:3, targetReps:12, week:'B' },
-      { type:'exercise', exercise_key:'arnold_press', sets:3, targetReps:12, week:'C' },
-      { type:'exercise', exercise_key:'rear_delt_fly', sets:3, targetReps:15, week:'C' },
-      { type:'exercise', exercise_key:'incline_db_press', sets:3, targetReps:12, week:'D' },
-      { type:'exercise', exercise_key:'bent_over_lateral_raise', sets:3, targetReps:15, week:'D' },
-      { type:'exercise', exercise_key:'triceps_pushdown', sets:3, targetReps:12 },
-      { type:'exercise', exercise_key:'overhead_tricep_extension', sets:3, targetReps:12, week:'C' },
+      { type:'exercise', exercise_key:'arnold_press', sets:3, targetReps:12, week:'B' },
+      { type:'exercise', exercise_key:'lateral_raise', sets:3, targetReps:15, week:'C' },
+      { type:'exercise', exercise_key:'rear_delt_fly', sets:3, targetReps:15, week:'D' },
+      { type:'exercise', exercise_key:'tricep_kickbacks', sets:3, targetReps:15 },
+      { type:'exercise', exercise_key:'triceps_pushdown', sets:3, targetReps:12, week:'A' },
+      { type:'exercise', exercise_key:'overhead_tricep_extension', sets:3, targetReps:12, week:'B' },
+      { type:'exercise', exercise_key:'triceps_pushdown', sets:3, targetReps:12, week:'C' },
       { type:'exercise', exercise_key:'overhead_tricep_extension', sets:3, targetReps:12, week:'D' },
-      { type:'finisher_cardio', minutes:25, week:'A' },
-      { type:'finisher_core', rounds:2, week:'B', exercises:[
-        { key:'plank', seconds:45 },
-        { key:'dead_bugs', reps:12, note:' /side' },
-        { key:'bicycle_crunches', reps:20 },
-        { key:'hollow_hold', seconds:20 },
-        { key:'leg_raises', reps:12 }
-      ]},
+      { type:'exercise', exercise_key:'hammer_curls', sets:3, targetReps:12 },
+      { type:'finisher_core', rounds:2, week:'A', exercises: LOWER_BELLY_CIRCUIT },
+      { type:'finisher_core', rounds:2, week:'B', exercises: LOWER_BELLY_CIRCUIT },
+      { type:'finisher_core', rounds:3, week:'C', exercises: LOWER_BELLY_CIRCUIT },
+      { type:'finisher_core', rounds:3, week:'D', exercises: LOWER_BELLY_CIRCUIT },
       { type:'cooldown' }
     ]},
+    legs: { name:'Legs, Glutes & Burn', estMin:65, blocks:[
+      { type:'stretching' },
+      { type:'exercise', exercise_key:'bulgarian_split_squat', sets:3, targetReps:12, anchor:true },
+      { type:'exercise', exercise_key:'hip_thrust', sets:3, targetReps:15, anchor:true },
+      { type:'exercise', exercise_key:'ham_curls', sets:3, targetReps:15 },
+      { type:'exercise', exercise_key:'sumo_squat', sets:3, targetReps:12, week:'A' },
+      { type:'exercise', exercise_key:'leg_extensions', sets:3, targetReps:12, week:'B' },
+      { type:'exercise', exercise_key:'goblet_squat', sets:3, targetReps:12, week:'C' },
+      { type:'exercise', exercise_key:'walking_lunges', sets:3, targetReps:12, week:'D' },
+      { type:'exercise', exercise_key:'kick_backs', sets:3, targetReps:15, week:'A' },
+      { type:'exercise', exercise_key:'hip_abduction', sets:3, targetReps:15, week:'B' },
+      { type:'exercise', exercise_key:'kick_backs', sets:3, targetReps:15, week:'C' },
+      { type:'exercise', exercise_key:'hip_abduction', sets:3, targetReps:15, week:'D' },
+      { type:'exercise', exercise_key:'calf_raise', sets:3, targetReps:15 },
+      { type:'finisher_cardio', minutes:25 },
+      { type:'cooldown' }
+    ]},
+    /* Off-cycle. Kept so sessions already logged against this key still resolve
+       to a readable name in History. */
     pull: { name:'Pull + Finisher', estMin:65, blocks:[
       { type:'stretching' },
       { type:'exercise', exercise_key:'lat_pulldown', sets:3, targetReps:12, anchor:true },
       { type:'exercise', exercise_key:'cable_rows', sets:3, targetReps:10, anchor:true },
       { type:'exercise', exercise_key:'one_hand_row', sets:3, targetReps:12 },
-      { type:'exercise', exercise_key:'preacher_curls', sets:3, targetReps:12, week:'A' },
-      { type:'exercise', exercise_key:'db_curls', sets:3, targetReps:12, week:'B' },
-      { type:'exercise', exercise_key:'hammer_curls', sets:3, targetReps:12, week:'C' },
-      { type:'exercise', exercise_key:'preacher_curls', sets:3, targetReps:12, week:'D' },
+      { type:'exercise', exercise_key:'db_curls', sets:3, targetReps:12 },
       { type:'exercise', exercise_key:'face_pulls', sets:3, targetReps:15 },
-      { type:'exercise', exercise_key:'db_pullover', sets:3, targetReps:12, week:'C' },
-      { type:'exercise', exercise_key:'bent_over_lateral_raise', sets:3, targetReps:15, week:'D' },
-      { type:'finisher_core', rounds:2, week:'A', exercises:[
-        { key:'plank', seconds:45 },
-        { key:'ab_crunches', reps:15 },
-        { key:'russian_twists', reps:20 },
-        { key:'side_plank', seconds:20, note:' /side' },
-        { key:'mountain_climbers', seconds:30 }
-      ]},
-      { type:'finisher_cardio', minutes:25, week:'B' },
-      { type:'cooldown' }
-    ]},
-    legs: { name:'Legs + Glutes', estMin:65, blocks:[
-      { type:'stretching' },
-      { type:'exercise', exercise_key:'hip_thrust', sets:3, targetReps:15, anchor:true },
-      { type:'exercise', exercise_key:'glute_bridge', sets:3, targetReps:15 },
-      { type:'exercise', exercise_key:'leg_press', sets:3, targetReps:15, anchor:true },
-      { type:'exercise', exercise_key:'calf_raise', sets:3, targetReps:15, anchor:true },
-      { type:'exercise', exercise_key:'sumo_squat', sets:3, targetReps:12, week:'A' },
-      { type:'exercise', exercise_key:'goblet_squat', sets:3, targetReps:12, week:'B' },
-      { type:'exercise', exercise_key:'hip_abduction', sets:3, targetReps:15, week:'C' },
-      { type:'exercise', exercise_key:'romanian_deadlift', sets:3, targetReps:12, week:'D' },
-      { type:'exercise', exercise_key:'kick_backs', sets:3, targetReps:15, week:'C' },
-      { type:'exercise', exercise_key:'walking_lunges', sets:3, targetReps:12, week:'D' },
-      { type:'exercise', exercise_key:'ham_curls', sets:3, targetReps:15 },
-      { type:'cardio_warmup', minutes:10 },
       { type:'cooldown' }
     ]}
   },
@@ -1545,6 +1544,12 @@ createApp({
 
     const sessions = ref(load(LS.sessions, []));
     const planState = reactive(load(LS.planState, { pointer:0, weekVariant:'A', lastSessionDate:null, lastCompletedDayKey:null }));
+    // The cycle length can change between app versions; a stale saved pointer
+    // would otherwise index past the end and leave the home screen blank.
+    if (!Number.isInteger(planState.pointer) || planState.pointer < 0 || planState.pointer >= PLAN.cycle.length) {
+      planState.pointer = 0;
+      save(LS.planState, planState);
+    }
     const resetBannerShown = ref(load(LS.resetBanner, false));
     const lastBackupDate = ref(load(LS.lastBackup, null));
 
